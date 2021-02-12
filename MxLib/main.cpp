@@ -12,19 +12,10 @@ using std::cout;
 using std::endl;
 
 int main (int argc, char *argv[]) {
-    genmx::Matrix <float> m = genmx::Matrix <float>::eye (3, 3);
-    m.SetValue (0, 1, 5);
+    genmx::Matrix <float> m {2, 2};
+    m.SetValue (0, 0, -1);
+    m.SetValue (0, 1, -1);
+    m.SetValue (1, 0, -1);
 
-    cout << m << endl << m.T () << endl;
-
-    m *= 5;
-
-    cout << m << endl;
-
-    for (int i = 0; i < m.nrows (); ++i) {
-        for (int j = 0; j < m.ncols (); ++j)
-            cout << ++m[i][j] << " ";
-        
-        cout << endl;
-    }
+    cout << m << endl << m.Determinant ();
 }

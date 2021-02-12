@@ -5,6 +5,7 @@
 #include <cassert>
 #include <stdexcept>
 #include <iostream>
+#include <random>
 
 //#define MXLIB_DEBUG
 
@@ -111,7 +112,7 @@ namespace genmx {       // General rhs (number, text, quaternion)
         {
             _dump_name_func (__PRETTY_FUNCTION__);
         }
-        Matrix (dim_t nRow, dim_t nColumn, RAND_FILL) :
+        Matrix (dim_t nRow, dim_t nColumn, U minValue, U maxValue, RAND_FILL) :
             buf_ ((U*) ::operator new[] (nRow * nColumn * sizeof (U))),
             nrow_ (nRow),
             ncol_ (nColumn)
@@ -120,10 +121,12 @@ namespace genmx {       // General rhs (number, text, quaternion)
             ,id_ (id_iter_++)
         #endif
         {
+            /*
             _dump_name_func ("Now you will be killed because method Matrix"
                              "Matrix (dim_t nRow, dim_t nColumn, RAND_FILL) has not yet been implemented");
 
             throw std::runtime_error ("Not realized");
+            */
             /*
                 std::random_device rd;
                 std::mt19937 gen(rd());
@@ -137,6 +140,14 @@ namespace genmx {       // General rhs (number, text, quaternion)
                 _rdrand$$sizeof (U)$$_step (&temp); // But only for number
 
             */
+
+            std::random_device rd;
+            std::mt19937 gen (rd ());
+            std::uniform_int_distribution <> rand_val (minValue, maxValue);
+
+            size_t full_size = nrow_ * ncol_;
+            for (size_t i = 0; i < full_size; ++i)
+                *(buf_ + i) = rand_val (gen);
         }
 
         Matrix (const Matrix& rhs) :
@@ -155,6 +166,9 @@ namespace genmx {       // General rhs (number, text, quaternion)
             _dump_name_func (__PRETTY_FUNCTION__);
         }
         Matrix (Matrix &&other) noexcept = default;
+        static Matrix eye (dim_t nrow) {
+            return eye (nrow, nrow);
+        }
         static Matrix eye (dim_t nrow, dim_t ncol, U one = 1) {
             Matrix result {nrow, ncol, U {}};
 
@@ -248,6 +262,31 @@ namespace genmx {       // General rhs (number, text, quaternion)
 
             return *this;
         }
+        template <typename N>
+        Matrix& operator+= (N num) {
+            const size_t full_size = nrow_ * ncol_;
+            for (size_t i = 0; i < full_size; ++i)
+                *(buf_ + i) += num;
+
+            return *this;
+        }
+        template <typename N>
+        Matrix& operator-= (N num) {
+            const size_t full_size = nrow_ * ncol_;
+            for (size_t i = 0; i < full_size; ++i)
+                *(buf_ + i) -= num;
+
+            return *this;
+        }
+        template <typename N>
+        Matrix& operator/= (N num) {
+            const size_t full_size = nrow_ * ncol_;
+            for (size_t i = 0; i < full_size; ++i)
+                *(buf_ + i) /= num;
+
+            return *this;
+        }
+        
 
         bool operator== (const Matrix& rhs) {
             return Equal (rhs);
@@ -355,26 +394,54 @@ namespace genmx {       // General rhs (number, text, quaternion)
                            *GetPointer (row_second, icol));
         }
 
+        U Determinant_Simple () {
+            CheckSquareSize ();
+
+            if (ncol_ == 2)
+                return GetValue (0, 0) * GetValue (1, 1) - GetValue (0, 1) * GetValue (1, 0);
+            else if (ncol_ == 1)
+                return GetValue (0, 0);
+
+            U result = 0;
+
+            for (dim_t k = 0; k < ncol_; ++k) {
+                Matrix minor {ncol_ - 1, ncol_ - 1, NO_INIT::NOINIT};
+                
+                for (dim_t irow = 1; irow < ncol_; ++irow)
+                    for (dim_t icol = 0; icol < ncol_; ++icol)
+                        if (icol < k)
+                            minor.SetValue (irow - 1, icol, GetValue (irow, icol));
+                        else if (icol > k)
+                            minor.SetValue (irow - 1, icol - 1, GetValue (irow, icol));
+
+                result += GetValue (0, k) * minor.Determinant_Simple () * (1 - 2 * ((int) k % 2));
+            }
+
+            return result;
+        }
         U Determinant () {
             CheckSquareSize ();
 
             Matrix <U> save {*this};
-
-            U result = U {};
+            
+            U result = GetValue (0, 0), minus = 1;
             for (dim_t irow = 0; irow < nrow_; ++irow) {
                 
                 // Get nonzero on a_ij or det(A) == 0
-                if (GetValue (irow, irow) == U {}) {
+                if (GetValue (irow, irow) == 0) {
 
                     dim_t irow_swap = irow + 1;
                     for (; irow_swap < nrow_; ++irow_swap)
                         if (GetValue (irow_swap, irow) != U {})
                             break;
                     
-                    if (irow_swap < nrow_)
+                    if (irow_swap < nrow_) {
                         SwapRows (irow, irow_swap);
-                    else
-                        return U {};
+                        
+                        minus = -minus;
+                    } else
+                        return U {};    // return 0;
+                
                 }
 
                 const U cur_diag = GetValue (irow, irow);
@@ -389,16 +456,17 @@ namespace genmx {       // General rhs (number, text, quaternion)
                 for (dim_t irow_sub = irow + 1; irow_sub < nrow_; ++irow_sub) {
                     U koef = GetValue (irow_sub, irow) / cur_diag;
 
-                    for (dim_t icol_sub = irow + 1; icol_sub < ncol_; ++icol_sub)
+                    for (dim_t icol_sub = irow + 1*0; icol_sub < ncol_; ++icol_sub)
                         *GetPointer (irow_sub, icol_sub) -= koef * GetValue (irow, icol_sub);
                 }
             }
-            
             *this = std::move (save);
 
-            return result;
+            return result * minus;
         }
-    
+        U D () {
+            return Determinant ();
+        }
     private:
         class ProxyRow {
             U* row_;
