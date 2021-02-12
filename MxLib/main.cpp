@@ -23,9 +23,8 @@ int main (int argc, char *argv[]) {
 
     for (int i = 0; i < m.nrows (); ++i) {
         for (int j = 0; j < m.ncols (); ++j)
-            cout << m[i][j] << " ";
+            cout << ++m[i][j] << " ";
         
         cout << endl;
     }
-
 }
