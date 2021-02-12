@@ -22,6 +22,14 @@
         for (int itest_col = 0; itest_col < ntest_col; ++ itest_col) {  \
             int ncol = rand_col (gen);
 
+#define ITERATION_RAND_VAL(T, val_min, val_max, ntest_val)              \
+    assert (ntest_val >= 0);                                            \
+                                                                        \
+    std::uniform_int_distribution<> rand_val (val_min, val_max);        \
+                                                                        \
+        for (int itest_val = 0; itest_val < ntest_val; ++ itest_val) {  \
+            int val = rand_val (gen);
+
 /* Template test ----------------------
 TEST (ConstructTest, InitValDefault) {
     
@@ -90,9 +98,7 @@ TEST (ConstructTest, InitValRandom) {
     // Iteration over values ---------------------------------------------
     ITERATION_RAND_ROW (500, 10)
         ITERATION_RAND_COL (500, 10)
-
-            for (int itest_val = 0; itest_val < ntest_val; ++itest_val) {
-                int val = rand_val (gen);
+            ITERATION_RAND_VAL (int, INT32_MIN, INT32_MAX, 20)
 
                 // Test correct init -------------------------------------
                 genmx::Matrix <int> m {nrow, ncol, val};
@@ -106,13 +112,27 @@ TEST (ConstructTest, InitValRandom) {
 
 }
 
-TEST (ConstructTest, CopyTest) {
-    const int nrow = 50, ncol = 60;
-    const double val = 234;
-    genmx::Matrix <double> m {nrow, ncol, val};
-    genmx::Matrix <double> n = -m;
+TEST (ConstructTest, CopyTest_Negative) {
+    std::random_device rd;
+    std::mt19937 gen (rd ());
+    
+    // Iteration over values ---------------------------------------------
+    ITERATION_RAND_ROW (500, 10)
+        ITERATION_RAND_COL (400, 15)
+            ITERATION_RAND_VAL (int, INT32_MIN, INT32_MAX, 10)
 
-    for (int irow = 0; irow < nrow; ++irow)             // Negative
-        for (int icol = 0; icol < ncol; ++icol)
-            ASSERT_EQ (m.GetValue (irow, icol), -n.GetValue (irow, icol));
+                // Test correct init -------------------------------------
+                genmx::Matrix <int> m {nrow, ncol, val};
+                genmx::Matrix <int> n = -m;
+                
+                for (int irow = 0; irow < nrow; ++irow)             // Negative
+                    for (int icol = 0; icol < ncol; ++icol)
+                        ASSERT_EQ (
+                            m.GetValue (irow, icol), -n.GetValue (irow, icol)
+                        );
+            
+            }
+        }
+    }
+
 }

@@ -6,3 +6,10 @@ enable_testing()
 add_subdirectory (MxLib MxLib/Build)
 add_subdirectory (googletest)
 add_subdirectory (test)
+
+set (Sources
+    main.cpp
+)
+
+add_executable(main ${Sources})
+target_link_libraries(main gtest pthread)
