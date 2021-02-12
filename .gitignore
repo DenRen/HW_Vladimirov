@@ -11,5 +11,4 @@ CTestTestfile.cmake
 _deps
 MxLib/main
 MxLib/build/MxLib
-MxLib/MxLib
 MxLib/build
