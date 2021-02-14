@@ -7,15 +7,8 @@
 //#define MXLIB_DEBUG
 #include "MxLib/MxLib.hpp"
 
-using std::cin;
-using std::cout;
-using std::endl;
+#include "CalcDet.hpp"
 
-int main (int argc, char *argv[]) {
-    genmx::Matrix <float> m {2, 2};
-    m.SetValue (0, 0, -1);
-    m.SetValue (0, 1, -1);
-    m.SetValue (1, 0, -1);
-
-    cout << m << endl << m.Determinant ();
+int main (int argc, char* argv[]) {
+    cnslarg::Interactive_CalcDet (argc, argv);
 }

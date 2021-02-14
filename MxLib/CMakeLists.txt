@@ -8,7 +8,7 @@ add_subdirectory (googletest)
 add_subdirectory (test)
 
 set (Sources
-    main.cpp
+    main.cpp CalcDet.cpp
 )
 
 add_executable(main ${Sources})
