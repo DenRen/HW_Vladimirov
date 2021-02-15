@@ -12,3 +12,5 @@ _deps
 MxLib/main
 MxLib/build/MxLib
 MxLib/build
+*.o
+*.out
