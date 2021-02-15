@@ -14,3 +14,7 @@ MxLib/build/MxLib
 MxLib/build
 *.o
 *.out
+WrapperCL/books/37490743.pdf
+WrapperCL/books/opencl30-reference-guide.pdf
+WrapperCL/books/OpenCL_API.pdf
+WrapperCL/books/OpenCL_C.pdf

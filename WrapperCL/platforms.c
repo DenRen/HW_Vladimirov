@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <string.h>
 
+// gcc platforms.c -o platforms.out -lOpenCL
+// ./platforms.out
+
 typedef struct {
     cl_uint num;
     cl_platform_id* ids;
@@ -158,7 +161,7 @@ devices_t get_devices (cl_platform_id platform_id) {
 
 int main (int argc, char* argv[]) {
     platforms_t platforms = get_platforms ();
-
+    
     for (int i = 0; i < platforms.num; ++i) {
         print_platform_info (platforms.ids[i]);
         printf ("\n");

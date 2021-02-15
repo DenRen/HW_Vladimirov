@@ -1,0 +1,4 @@
+https://www.khronos.org/files/opencl30-reference-guide.pdf
+https://docplayer.ru/storage/55/37490743/1613400710/RGr3b4_szbH8U7B46xA4dA/37490743.pdf
+https://www.khronos.org/registry/OpenCL/specs/3.0-unified/pdf/OpenCL_API.pdf
+https://www.khronos.org/registry/OpenCL/specs/3.0-unified/pdf/OpenCL_C.pdf

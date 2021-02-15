@@ -12,6 +12,7 @@
         "streambuf": "c",
         "type_traits": "c",
         "tuple": "c",
-        "*.txx": "c"
+        "*.txx": "c",
+        "cl.hpp": "c"
     }
 }
