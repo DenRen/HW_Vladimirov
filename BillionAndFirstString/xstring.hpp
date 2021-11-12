@@ -20,17 +20,31 @@ private:
     size_type size_;    // Не считая '\0'
     size_type cap_;     // Не считая '\0'
 
-    static const int init_size = 16 - 1;
-    
+    static const int init_cap = 16 - 1;
+
+    size_type 
+    _strlen (const CharT* str) const noexcept {
+        // TODO: implement for not only char type
+        return std::strlen (str);
+    }
+
+    // Used for calc data_[] size from number of symbols
+    constexpr size_type
+    _size_buf_from_num_symb (size_type number_symbols) noexcept {
+        return number_symbols + 1;
+    }
+
 public:
     xstring () :
-        data_ (new CharT[init_size + 1]),
+        data_ (new CharT[_size_buf_from_num_symb (init_cap)]),
         size_ (size_empty),
-        cap_ (init_size)
+        cap_ (init_cap)
     {}
 
+    xstring (xstring&&) = default;
+
     xstring (const xstring& other) :
-        data_ (new CharT[other.size_ + 1]),
+        data_ (new CharT[_size_buf_from_num_symb (other.size_)]),
         size_ (other.size_),
         cap_ (other.cap_)
     {
@@ -41,17 +55,21 @@ public:
     }
 
     xstring (const CharT* str) :
-        xstring (str, std::strlen (str)) // Only for char!
+        xstring (str, _strlen (str)) // Only for char!
     {}
 
     xstring (const CharT* str, size_type size) :
         size_ (size),
         cap_ (size_)
     {
-        data_ = new CharT[cap_ + 1];
+        data_ = new CharT[_size_buf_from_num_symb (cap_)];
         for (std::size_t i = 0; i <= size_; ++i) {
             data_[i] = str[i];
         }
+    }
+
+    ~xstring () {
+        delete[] data_;
     }
 
     CharT* c_str () const {
@@ -82,9 +100,11 @@ public:
 
     void reserve (size_type new_size) {
         if (new_size > cap_) {
+            delete[] data_;
+
             CharT* new_buffer = new CharT[new_size];
 
-            CharT* cur_new_symb = new_buffer, cur_symb = data_;
+            CharT* cur_new_symb = new_buffer, *cur_symb = data_;
             const CharT* end_symb = data_ + size_;
             do {
                 *cur_new_symb++ = *cur_symb++;
@@ -95,13 +115,38 @@ public:
     }
 
     void
-    add (const CharT* str, size_type size) {
-        reserve (size_ + size);
+    add (const CharT* str) {
+        add (str, _strlen (str));
+    }
 
-        CharT* cur_symb = data_ + size_ + 1, end_symb = data_ + size_ + size;
+    // size without terminated zero
+    void
+    add (const CharT* str, size_type size) {
+        const size_type new_size = size_ + size;
+
+        reserve (new_size);
+
+        CharT* cur_symb = data_ + size_, *end_symb = cur_symb + size;
         do {
             *cur_symb++ = *str++;
         } while (cur_symb < end_symb);
+
+        size_ = new_size;
+    }
+
+    void
+    add (const xstring <CharT>& other) {
+        add (other.data_, other.size_);
+    }
+
+    xstring <CharT>&
+    operator += (const xstring <CharT>& other) {
+        add (other);
+        return *this;
+    }
+
+    size_type capacity () const {
+        return cap_;
     }
 
     size_type length () const {
