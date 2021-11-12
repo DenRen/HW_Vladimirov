@@ -9,17 +9,20 @@ namespace meta {
 
 template <typename CharT>
 class xstring {
+public:
     using size_type = std::size_t;
 
+    static const size_type npos = -2;
+    static const size_type size_empty = -1;
+
+private:
     CharT* data_;
     size_type size_;    // Не считая '\0'
     size_type cap_;     // Не считая '\0'
 
-    static constexpr int init_size = 16 - 1;
+    static const int init_size = 16 - 1;
+    
 public:
-    static const size_type npos = -2;
-    static const size_type size_empty = -1;
-
     xstring () :
         data_ (new CharT[init_size + 1]),
         size_ (size_empty),
@@ -55,7 +58,17 @@ public:
         return data_;
     }
 
-    size_type at (CharT symb) const {
+    // Max symbol of pos is end of string character
+    CharT at (size_type pos) const {
+        if (pos >= size_) {
+            throw std::invalid_argument ("overbound!");
+        }
+
+        return data_[pos];
+    }
+
+    // End of string character allowed
+    size_type find (CharT symb) const {
         CharT* cur_symb = data_, *end_symb = data_ + size_;
 
         do {
@@ -70,7 +83,7 @@ public:
     void reserve (size_type new_size) {
         if (new_size > cap_) {
             CharT* new_buffer = new CharT[new_size];
-            
+
             CharT* cur_new_symb = new_buffer, cur_symb = data_;
             const CharT* end_symb = data_ + size_;
             do {
@@ -120,7 +133,7 @@ operator >> (std::basic_istream <CharT>& is, const meta::xstring <CharT>& xstr) 
     do {
         for (unsigned counter = 0; counter < BUF_SIZE - 1; ++counter) {
             is >> cur_symb;
-            
+
             buffer[counter] = cur_symb;
             if (cur_symb == '\0' || cur_symb == '\n') {
                 buffer[counter] = '\0';
