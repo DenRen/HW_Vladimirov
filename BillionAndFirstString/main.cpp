@@ -1,12 +1,15 @@
 #include <iostream>
 #include "xstring.hpp"
 
+/*
+TODO:
+    find (str)
+    replaceAll (...)
+*/
+
 int main () {
-    ::meta::xstring <char> str;
+    ::meta::xstring <char> str ("hello");
     std::cout << str;
 
-    for (int i = 0; i < 40; ++i) {
-        str.add ("Lol");
-        std::cout << str << std::endl;
-    }
+    str.find ("he");
 }

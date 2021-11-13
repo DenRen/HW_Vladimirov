@@ -87,19 +87,6 @@ public:
         return data_[pos];
     }
 
-    // End of string character allowed
-    size_type find (CharT symb) const {
-        CharT* cur_symb = data_, *end_symb = data_ + size_;
-
-        do {
-            if (*cur_symb == symb) {
-                return cur_symb - data_;
-            }
-        } while (cur_symb++ < end_symb);
-
-        return npos;
-    }
-
     void reserve (size_type new_size) {
         if (new_size > cap_) {
             CharT* const new_buffer = new CharT[_size_buf_from_num_symb (new_size)];
@@ -124,8 +111,91 @@ public:
             throw std::invalid_argument ("Empty string!");
         }
 
-        const size_type new_size = size_ + size;
+        _add (str, size);
+    }
 
+    void inline
+    add (const CharT* str) {
+        _add (str, _strlen (str));
+    }
+
+    void inline
+    add (const xstring <CharT>& other) noexcept {
+        _add (other.data_, other.size_);
+    }
+
+    xstring <CharT>&
+    operator += (const xstring <CharT>& other) noexcept {
+        _add (other.data_, other.size_);
+        return *this;
+    }
+
+    size_type inline
+    capacity () const noexcept {
+        return cap_;
+    }
+
+    size_type inline
+    length () const noexcept {
+        return size_;
+    }
+
+    bool inline
+    is_empty () const noexcept {
+        return size_ == size_empty;
+    }
+
+    CharT
+    operator[] (size_type position) const {
+        if (position > size_) {
+            throw std::invalid_argument ("Out of range");
+        }
+
+        return data_[position];
+    }
+
+    CharT&
+    operator[] (size_type position) {
+        if (position > size_) {
+            throw std::invalid_argument ("Out of range");
+        }
+
+        return data_[position];
+    }
+
+    size_type
+    find (const CharT* str) const {
+        if (str == nullptr) {
+            throw std::invalid_argument ("null pointer exception");
+        }
+
+        CharT* pos = NULL;
+        if ((pos = strstr (data_, str)) == NULL) {
+            return npos;
+        }
+
+        return pos - data_;
+    }
+
+    // End of string character allowed
+    size_type
+    find (CharT symb) const noexcept {
+        CharT* cur_symb = data_, *end_symb = data_ + size_;
+
+        do {
+            if (*cur_symb == symb) {
+                return cur_symb - data_;
+            }
+        } while (cur_symb++ < end_symb);
+
+        return npos;
+    }
+
+private:
+    // size without terminated zero
+    void
+    _add (const CharT* str, size_type size) noexcept {
+        const size_type new_size = size_ + size;
         reserve (new_size);
 
         CharT* cur_symb = data_ + size_;
@@ -138,34 +208,6 @@ public:
 
         size_ = new_size;
     }
-
-    void
-    add (const CharT* str) {
-        add (str, _strlen (str));
-    }
-
-    void
-    add (const xstring <CharT>& other) {
-        add (other.data_, other.size_);
-    }
-
-    xstring <CharT>&
-    operator += (const xstring <CharT>& other) {
-        add (other);
-        return *this;
-    }
-
-    size_type capacity () const {
-        return cap_;
-    }
-
-    size_type length () const {
-        return size_;
-    }
-
-    bool is_empty () const {
-        return size_ == size_empty;
-    }
 };
 
 } // namespace meta
@@ -177,29 +219,12 @@ operator << (std::basic_ostream <CharT>& os, const ::meta::xstring <CharT>& xstr
     return os << xstr.c_str ();
 }
 
-
 // is - может быть неудачное название для input stream
 template <typename CharT>
 std::basic_istream <CharT>&
 operator >> (std::basic_istream <CharT>& is, ::meta::xstring <CharT>& xstr) {
-    const unsigned BUF_SIZE = 128;
-    CharT buffer[BUF_SIZE] = {0};
-    /*
-    CharT cur_symb;
-    do {
-        for (unsigned counter = 0; counter < BUF_SIZE - 1; ++counter) {
-            is >> cur_symb;
-
-            buffer[counter] = cur_symb;
-            if (cur_symb == '\0' || cur_symb == '\n') {
-                buffer[counter] = '\0';
-                break;
-            }
-        }
-
-        xstr += xstr;
-
-    } while ();*/
+    throw std::runtime_error ("Need to be implement");
+    return is;
 }
 
 #endif // XSTRING_HPP
