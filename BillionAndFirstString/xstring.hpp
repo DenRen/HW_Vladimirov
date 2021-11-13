@@ -13,14 +13,14 @@ public:
     using size_type = std::size_t;
 
     static const size_type npos = -2;
-    static const size_type size_empty = -1;
+    static const size_type size_empty = 0;
 
 private:
     CharT* data_;
     size_type size_;    // Не считая '\0'
     size_type cap_;     // Не считая '\0'
 
-    static const int init_cap = 16 - 1;
+    static const size_type init_cap = 16 - 1;
 
     size_type 
     _strlen (const CharT* str) const noexcept {
@@ -39,7 +39,9 @@ public:
         data_ (new CharT[_size_buf_from_num_symb (init_cap)]),
         size_ (size_empty),
         cap_ (init_cap)
-    {}
+    {
+        data_[0] = '\0';
+    }
 
     xstring (xstring&&) = default;
 
@@ -72,13 +74,13 @@ public:
         delete[] data_;
     }
 
-    CharT* c_str () const {
+    CharT* c_str () const noexcept {
         return data_;
     }
 
     // Max symbol of pos is end of string character
     CharT at (size_type pos) const {
-        if (pos >= size_) {
+        if (pos > size_) {
             throw std::invalid_argument ("overbound!");
         }
 
@@ -100,9 +102,7 @@ public:
 
     void reserve (size_type new_size) {
         if (new_size > cap_) {
-            delete[] data_;
-
-            CharT* new_buffer = new CharT[new_size];
+            CharT* const new_buffer = new CharT[_size_buf_from_num_symb (new_size)];
 
             CharT* cur_new_symb = new_buffer, *cur_symb = data_;
             const CharT* end_symb = data_ + size_;
@@ -111,27 +111,37 @@ public:
             } while (cur_symb < end_symb);
 
             cap_ = new_size;
-        }
-    }
 
-    void
-    add (const CharT* str) {
-        add (str, _strlen (str));
+            delete[] data_;
+            data_ = new_buffer;
+        }
     }
 
     // size without terminated zero
     void
     add (const CharT* str, size_type size) {
+        if (str == nullptr && size == 0) {
+            throw std::invalid_argument ("Empty string!");
+        }
+
         const size_type new_size = size_ + size;
 
         reserve (new_size);
 
-        CharT* cur_symb = data_ + size_, *end_symb = cur_symb + size;
-        do {
+        CharT* cur_symb = data_ + size_;
+        const CharT* end_symb = cur_symb + size;
+        while (cur_symb < end_symb) {
             *cur_symb++ = *str++;
-        } while (cur_symb < end_symb);
+        }
+
+        *cur_symb = '\0';
 
         size_ = new_size;
+    }
+
+    void
+    add (const CharT* str) {
+        add (str, _strlen (str));
     }
 
     void
@@ -162,7 +172,8 @@ public:
 
 // os - может быть неудачное название для output stream
 template <typename CharT>
-std::basic_ostream <CharT>& operator << (std::basic_ostream <CharT>& os, const meta::xstring <CharT>& xstr) {
+std::basic_ostream <CharT>&
+operator << (std::basic_ostream <CharT>& os, const ::meta::xstring <CharT>& xstr) {
     return os << xstr.c_str ();
 }
 
@@ -170,7 +181,7 @@ std::basic_ostream <CharT>& operator << (std::basic_ostream <CharT>& os, const m
 // is - может быть неудачное название для input stream
 template <typename CharT>
 std::basic_istream <CharT>&
-operator >> (std::basic_istream <CharT>& is, const meta::xstring <CharT>& xstr) {
+operator >> (std::basic_istream <CharT>& is, ::meta::xstring <CharT>& xstr) {
     const unsigned BUF_SIZE = 128;
     CharT buffer[BUF_SIZE] = {0};
     /*
