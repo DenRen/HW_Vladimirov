@@ -10,7 +10,7 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -flto")
 #######################
 ADD_SUBDIRECTORY (googletest)
 enable_testing ()
-include_directories (${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR}) 
+include_directories (${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
 #######################
 # Unit Tests
@@ -18,7 +18,7 @@ include_directories (${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
 
 # Add test cpp file
-add_executable (run_unit_tests test_xstring.cpp) 
+add_executable (run_unit_tests test_xstring.cpp)
 #Link test executable against gtest and gtest_main
 target_link_libraries (run_unit_tests gtest gtest_main)
 

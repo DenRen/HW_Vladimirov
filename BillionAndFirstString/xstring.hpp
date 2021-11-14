@@ -112,7 +112,7 @@ public:
         }
 
         return data_[pos];
-    }
+    } // at (size_type pos)
 
     void
     reserve (size_type new_size) {
@@ -125,7 +125,7 @@ public:
             cap_ = new_size;
             data_ = new_buffer;
         }
-    }
+    } // reserve (size_type new_size)
 
     // size without terminated zero
     void
@@ -227,7 +227,7 @@ private:
         *(data_ + new_size) = Traits::eof ();
 
         size_ = new_size;
-    }
+    } // _add (const CharT* str, size_type size)
 
     // witout overmapping
     void
@@ -275,7 +275,7 @@ private:
 
         *right_bound = Traits::eof ();
         size_ = right_bound - data_;
-    }
+    } // _replace_all_from_greater_to (const basic_xstring <CharT>& from, const basic_xstring <CharT>& to)
 
     void
     _replace_all_from_less_to (const basic_xstring <CharT>& from, const basic_xstring <CharT>& to) {
@@ -341,7 +341,7 @@ private:
         data_ = new_data_;
         size_ = new_size;
         cap_ = new_cap;
-    }
+    } // _replace_all_from_less_to (const basic_xstring <CharT>& from, const basic_xstring <CharT>& to)
 
 }; // basic_xstring <CharT>
 
