@@ -236,8 +236,8 @@ private:
     void
     _replace_all_from_greater_to (const basic_xstring <CharT>& from, const basic_xstring <CharT>& to) {
         // Capacity will not change
-        CharT* occur = strstr (data_, from.data_);
-        if (occur == nullptr) {
+        CharT* occur = std::search (data_, data_ + size_, from.data_, from.data_ + from.size_);
+        if (occur == data_ + size_) {
             return;
         }
 
@@ -249,9 +249,9 @@ private:
         const CharT* end_data = data_ + size_;
 
         while (finder != end_data) {
-            // occur = std::search (finder, end_data, from.data_, from.d);
-            occur = strstr (finder, from.data_);
-            if (occur == nullptr) {
+            occur = std::search (finder, const_cast <CharT*> (end_data),
+                                 from.data_, from.data_ + from.size_);
+            if (occur == end_data) {
                 const size_type size_shift_block = end_data - finder;
                 // Plus 1, because we shift also '\0'
                 _mem_left_shift (finder, size_shift_block + 1, finder - right_bound);
@@ -282,8 +282,9 @@ private:
         CharT* finder = data_;
         const CharT* end_data = data_ + size_;
         while (finder != end_data) {
-            CharT* occur = std::strstr (finder, from.data_);
-            if (occur == nullptr) {
+            CharT* occur = std::search (finder, const_cast <CharT*> (end_data),
+                                        from.data_, from.data_ + from.size_);
+            if (occur == end_data) {
                 break;
             }
 
@@ -304,8 +305,9 @@ private:
 
         finder = data_;
         while (finder != end_data) {
-            CharT* occur = strstr (finder, from.data_);
-            if (occur == nullptr) {
+            CharT* occur = std::search (finder, const_cast <CharT*> (end_data),
+                                        from.data_, from.data_ + from.size_);
+            if (occur == end_data) {
                 const size_type size_block = end_data - finder;
                 // Plus 1, because we shift also '\0'
                 std::copy (finder, finder + size_block + 1, new_right_bound);
