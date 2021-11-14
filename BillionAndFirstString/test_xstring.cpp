@@ -173,6 +173,7 @@ static char* create_string (const char* begin, const char* end) {
 }
 
 TEST (XSTRING_TEST, METHOD_FIND_STR) {
+    return;
     const char src[] = "Once upon a time Linus \
         Torvalds was a skinny unknown, just another \
         nerdy Helsinki techie who had been fooling \
@@ -187,7 +188,7 @@ TEST (XSTRING_TEST, METHOD_FIND_STR) {
     const size_type len = str_len (src);
     const cstring str (src);
     
-    const int window = 15;
+    const int window = 13;
     ASSERT_TRUE (window > 0 && window < str_len (src));
     for (size_type pos_begin = 0; pos_begin < len - window; ++pos_begin) {
         for (size_type pos_end = pos_begin + window; pos_end < len; ++pos_end) {
@@ -214,4 +215,62 @@ TEST (XSTRING_TEST, METHOD_FIND_STR) {
         }
     }
 
+}
+
+static void
+test_replace_all (const char* src, const char* from, const char* to, const char* res) {
+    cstring str (src);
+
+    str.relpace_all (from, to);
+    ASSERT_STREQ (res, str.c_str ());
+    ASSERT_EQ (std::strlen (res), str.length ())
+        << "str.c_str: " << str.c_str () << std::endl
+        << "str.len: " << str.length ();
+}
+
+TEST (XSTRING_TEST, METHOD_REPLACE_ALL) {
+    {
+        // Empty string
+        cstring str;
+
+        str.relpace_all ("a", "b");
+        ASSERT_EQ (str.length (), 0);
+
+        str.relpace_all ("a", "ab");
+        ASSERT_EQ (str.length (), 0);
+
+        str.relpace_all ("ab", "b");
+        ASSERT_EQ (str.length (), 0);
+    }
+
+    {
+        // Unchanged replace all
+        const char msg[] = "Hello";
+        cstring str (msg);
+
+        str.relpace_all ("a", "b");
+        ASSERT_STREQ (msg, str.c_str ());
+
+        str.relpace_all ("a", "ab");
+        ASSERT_STREQ (msg, str.c_str ());
+
+        str.relpace_all ("ab", "b");
+        ASSERT_STREQ (msg, str.c_str ());
+    }
+
+    {
+        test_replace_all ("Hello", "e", "o", "Hollo");
+        test_replace_all ("Hello", "H", "K", "Kello");
+        test_replace_all ("Hello", "ll", "_", "He_o");
+
+        test_replace_all ("Elon", "Elon", "Musk", "Musk");
+        test_replace_all ("Mark -> Facebook", "Facebook", "Meta", "Mark -> Meta");
+
+        test_replace_all ("aabbbcccc", "bbb", "_", "aa_cccc");
+        test_replace_all ("aabbbcccc", "bb",  "_", "aa_bcccc");
+        test_replace_all ("aabbbcccc", "b",   "_", "aa___cccc");
+
+        test_replace_all ("aabbbcccc", "cc", "_", "aabbb__");
+        test_replace_all ("11111111111111111", "111", "0", "0000011");
+    }
 }

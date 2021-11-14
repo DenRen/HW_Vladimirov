@@ -16,13 +16,14 @@ public:
     static const size_type size_empty = 0;
 
 private:
+    // todo: sso
     CharT* data_;
     size_type size_;    // Не считая '\0'
     size_type cap_;     // Не считая '\0'
 
     static const size_type init_cap = 16 - 1;
 
-    size_type 
+    size_type
     _strlen (const CharT* str) const noexcept {
         // TODO: implement for not only char type
         return std::strlen (str);
@@ -191,6 +192,50 @@ public:
         return npos;
     }
 
+    void
+    relpace_all (const xstring <CharT>& from, const xstring <CharT>& to) {
+        const size_type len_from = from.size_;
+        const size_type len_to = to.size_;
+
+        if (len_from >= len_to) {
+            // Capacity will not change
+            CharT* occur = strstr (data_, from.data_);
+            if (occur == nullptr) {
+                return;
+            }
+
+            memcpy (occur, to.data_, to.size_);
+
+            const size_type _delta = from.size_ - to.size_; // >= 0
+            CharT* right_bound = occur + to.size_;
+            CharT* finder = occur + from.size_;
+            const CharT* end_data = data_ + size_;
+
+            while (finder != end_data) {
+                occur = strstr (finder, from.data_);
+                if (occur == nullptr) {
+                    const size_type size_shift_block = end_data - finder;
+                    // Plus 1, because we shift also '\0'
+                    _mem_left_shift (finder, size_shift_block + 1, finder - right_bound);
+                    
+                    size_ = right_bound - data_ + size_shift_block;
+                    return;
+                }
+
+                const size_type size_shift_block = occur - finder;
+                _mem_left_shift (finder, size_shift_block, finder - right_bound);
+                memcpy (right_bound + size_shift_block, to.data_, to.size_);
+
+                right_bound += size_shift_block + to.size_;
+                finder = occur + from.size_;
+            }
+
+            *right_bound = '\0';
+            size_ = right_bound - data_;
+        } else {
+            // Capacity will change
+    }
+
 private:
     // size without terminated zero
     void
@@ -207,6 +252,11 @@ private:
         *cur_symb = '\0';
 
         size_ = new_size;
+    }
+
+    // witout overmapping
+    void _mem_left_shift (CharT* src, size_type size, size_type shift) {
+        memcpy (src - shift, src, size);
     }
 };
 
