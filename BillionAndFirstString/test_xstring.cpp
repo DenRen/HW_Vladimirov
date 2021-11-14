@@ -173,7 +173,6 @@ static char* create_string (const char* begin, const char* end) {
 }
 
 TEST (XSTRING_TEST, METHOD_FIND_STR) {
-    return;
     const char src[] = "Once upon a time Linus \
         Torvalds was a skinny unknown, just another \
         nerdy Helsinki techie who had been fooling \
@@ -226,9 +225,10 @@ test_replace_all (const char* src, const char* from, const char* to, const char*
     ASSERT_EQ (std::strlen (res), str.length ())
         << "str.c_str: " << str.c_str () << std::endl
         << "str.len: " << str.length ();
+    ASSERT_LE (std::strlen (res), str.capacity ());
 }
 
-TEST (XSTRING_TEST, METHOD_REPLACE_ALL) {
+TEST (XSTRING_TEST, METHOD_REPLACE_ALL_TO_LE_FROM) {
     {
         // Empty string
         cstring str;
@@ -259,6 +259,9 @@ TEST (XSTRING_TEST, METHOD_REPLACE_ALL) {
     }
 
     {
+        test_replace_all ("", "e", "o", "");
+        test_replace_all ("", "e", "ob", "");
+
         test_replace_all ("Hello", "e", "o", "Hollo");
         test_replace_all ("Hello", "H", "K", "Kello");
         test_replace_all ("Hello", "ll", "_", "He_o");
@@ -273,4 +276,23 @@ TEST (XSTRING_TEST, METHOD_REPLACE_ALL) {
         test_replace_all ("aabbbcccc", "cc", "_", "aabbb__");
         test_replace_all ("11111111111111111", "111", "0", "0000011");
     }
+}
+
+TEST (XSTRING_TEST, METHOD_REPLACE_ALL_TO_GA_FROM) {
+    test_replace_all ("Hello", "e", "alk! Tre", "Halk! Trello");
+
+    test_replace_all ("abbbcccc", "a", "AAA", "AAAbbbcccc");
+    test_replace_all ("aabbbcccc", "a", "AAA", "AAAAAAbbbcccc");
+    test_replace_all ("aabbbcccc", "b", "________",  "aa________________________cccc");
+
+    test_replace_all ("abbbcccd", "d", "Hello", "abbbcccHello");
+    test_replace_all ("abbbcccc", "c", "Hello", "abbbHelloHelloHelloHello");
+
+    test_replace_all ("aaabs00" "bbsbbbb00" "bdbdb00" "db", "00", "Start",
+                      "aaabsStartbbsbbbbStartbdbdbStartdb");
+
+    test_replace_all ("a",  "a", "11111111111111111", "11111111111111111");
+    test_replace_all ("aa", "a", "11111111111111111", "1111111111111111111111111111111111");
+
+    test_replace_all ("", "a", "11111111111111111", "");
 }

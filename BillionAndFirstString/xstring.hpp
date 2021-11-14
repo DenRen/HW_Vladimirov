@@ -234,6 +234,64 @@ public:
             size_ = right_bound - data_;
         } else {
             // Capacity will change
+
+            // Calculate new data size
+            size_type extra_size = 0;
+
+            CharT* finder = data_;
+            const CharT* end_data = data_ + size_;
+            while (finder != end_data) {
+                CharT* occur = strstr (finder, from.data_);
+                if (occur == nullptr) {
+                    break;
+                }
+
+                extra_size += to.size_ - from.size_;
+                finder = occur + from.size_;
+            }
+
+            if (extra_size == 0) {
+                return;
+            }
+
+            // Fill new buffer and swap data pointers
+            const size_type new_size = size_ + extra_size;
+            const size_type new_cap = _size_buf_from_num_symb (new_size);
+            CharT* const new_data_ = new CharT[new_cap];
+
+            CharT* new_right_bound = new_data_;
+
+            finder = data_;
+            while (finder != end_data) {
+                CharT* occur = strstr (finder, from.data_);
+                if (occur == nullptr) {
+                    const size_type size_block = end_data - finder;
+                    // Plus 1, because we shift also '\0'
+                    memcpy (new_right_bound, finder, size_block + 1);
+
+                    delete[] data_;
+                    data_ = new_data_;
+                    size_ = new_size;
+                    cap_ = new_cap;
+
+                    return;
+                }
+
+                const size_type size_block = occur - finder;
+                memcpy (new_right_bound, finder, size_block);
+                memcpy (new_right_bound + size_block, to.data_, to.size_);
+
+                new_right_bound += size_block + to.size_;
+                finder = occur + from.size_;
+            }
+
+            *new_right_bound = '\0';
+
+            delete[] data_;
+            data_ = new_data_;
+            size_ = new_size;
+            cap_ = new_cap;
+        }
     }
 
 private:
