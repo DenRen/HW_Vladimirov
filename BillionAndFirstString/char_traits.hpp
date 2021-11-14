@@ -20,15 +20,6 @@ public:
 template <typename CharT>
 class char_traits : public base_char_traits <CharT> {};
 
-template <>
-class char_traits <char> : public base_char_traits <char> {
-public:
-    static inline char
-    eof () noexcept {
-        return '\0';
-    }
-}; // char_traits <char>
-
 }
 
 #endif // CHAR_TRAITS_HPP

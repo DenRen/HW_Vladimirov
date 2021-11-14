@@ -27,9 +27,20 @@ private:
     static const size_type init_cap = 16 - 1;
 
     size_type
-    _strlen (const CharT* str) const noexcept {
-        // TODO: implement for not only char type
+    _strlen (const char* str) const noexcept {
         return std::strlen (str);
+    }
+
+    template <typename CharU>
+    size_type
+    _strlen (const CharU* str) const noexcept {
+        const CharU* cur = str;
+        for (;
+             Traits::is_equal (*cur, Traits::eof ()) == false;
+             ++cur)
+        {}
+
+        return cur - str;
     }
 
     // Used for calc data_[] size from number of symbols
@@ -177,7 +188,7 @@ public:
             throw std::invalid_argument ("Out of range");
         }
 
-        const size_type len = std::strlen (str);
+        const size_type len = _strlen (str);
         if (len > size_) {
             return npos;
         }

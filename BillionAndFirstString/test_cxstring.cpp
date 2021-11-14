@@ -10,7 +10,7 @@ using size_type = cstring::size_type;
 const static cstring::size_type temp_npos = cstring::npos;
 const static cstring::size_type temp_size_empty = cstring::size_empty;
 
-TEST (XSTRING_TEST, STATIC_CONSTS) {
+TEST (CXSTRING_TEST, STATIC_CONSTS) {
     // TODO: FIX BUG!
     // undefined reference to `meta::basic_xstring<char>::size_empty'
     // #define GEN_BUG
@@ -24,7 +24,7 @@ TEST (XSTRING_TEST, STATIC_CONSTS) {
     // Similary with cstring::npos
 }
 
-TEST (XSTRING_TEST, DEFAULT_CONSTRUCT) {
+TEST (CXSTRING_TEST, DEFAULT_CONSTRUCT) {
     cstring str;
 
     ASSERT_EQ (str.length (), temp_size_empty);
@@ -35,14 +35,14 @@ TEST (XSTRING_TEST, DEFAULT_CONSTRUCT) {
     ASSERT_TRUE (str.is_empty ());
 }
 
-TEST (XSTRING_TEST, COPY_CONSTRUCT) {
+TEST (CXSTRING_TEST, COPY_CONSTRUCT) {
     cstring str ("Lol");
     cstring copt_str (str);
 
     ASSERT_TRUE (str == copt_str);
 }
 
-TEST (XSTRING_TEST, MOVE_CONSTRUCT) {
+TEST (CXSTRING_TEST, MOVE_CONSTRUCT) {
     cstring temp ("Hello");
     cstring str (std::move (temp));
 }
@@ -53,7 +53,7 @@ str_len (const T (&arr)[N]) noexcept {
     return N - 1;
 }
 
-TEST (XSTRING_TEST, METHOD_RESERVE) {
+TEST (CXSTRING_TEST, METHOD_RESERVE) {
     const char greeting[] = "Hello";
     cstring str (greeting);
 
@@ -63,7 +63,7 @@ TEST (XSTRING_TEST, METHOD_RESERVE) {
     }
 }
 
-TEST (XSTRING_TEST, OTHER_FUNCS_STR_LEN) {
+TEST (CXSTRING_TEST, OTHER_FUNCS_STR_LEN) {
     ASSERT_EQ (str_len ("Hello!"), 6);
     ASSERT_EQ (str_len (""), 0);
 
@@ -71,7 +71,7 @@ TEST (XSTRING_TEST, OTHER_FUNCS_STR_LEN) {
     ASSERT_EQ (str_len (L""), 0);
 }
 
-TEST (XSTRING_TEST, CONST_CHAR_PTR_CONSTRUCT) {
+TEST (CXSTRING_TEST, CONST_CHAR_PTR_CONSTRUCT) {
     const char phrase[] = "Hello, world!";
     const std::size_t len = str_len (phrase);
 
@@ -92,7 +92,7 @@ check_on_equal_str (const ::meta::basic_xstring <CharT>& xstr, const CharT (&ref
         << "first.c_str: \"" << xstr.c_str () << "\"";
 }
 
-TEST (XSTRING_TEST, METHOD_ADD) {
+TEST (CXSTRING_TEST, METHOD_ADD) {
     const char str1[] = "Hello, ";
     const char str2[] = "world!";
     const char res[]  = "Hello, world!";
@@ -133,7 +133,7 @@ static void test_method_at (MethodGetSymbol get_symbol) {
     }
 }
 
-TEST (XSTRING_TEST, METHOD_AT) {
+TEST (CXSTRING_TEST, METHOD_AT) {
     test_method_at (
         [] (const cstring& xstr, cstring::size_type pos) {
             return xstr.at (pos);
@@ -141,7 +141,7 @@ TEST (XSTRING_TEST, METHOD_AT) {
     );
 }
 
-TEST (XSTRING_TEST, METHOD_FIND_CHAR) {
+TEST (CXSTRING_TEST, METHOD_FIND_CHAR) {
     const char res[] = "Hello, world!";
     const char unused_symbols[] = "1234567890\'\"`()-=q_-+zxcvbnm";
 
@@ -157,7 +157,7 @@ TEST (XSTRING_TEST, METHOD_FIND_CHAR) {
     }
 }
 
-TEST (XSTRING_TEST, OPERATOR_SQUARE_BRACKETS) {
+TEST (CXSTRING_TEST, OPERATOR_SQUARE_BRACKETS) {
     test_method_at (
         [] (const cstring& xstr, cstring::size_type pos) {
             return xstr[pos];
@@ -188,7 +188,7 @@ copy_substring (char* dest, const char* begin, const char* end) {
     return dest;
 }
 
-TEST (XSTRING_TEST, METHOD_FIND_STR_EXIST_SUBSTR) {
+TEST (CXSTRING_TEST, METHOD_FIND_STR_EXIST_SUBSTR) {
     const char src[] = "Once upon a time Linus "
                         "Torvalds was a skinny unknown, just another "
                         "nerdy Helsinki techie who had been fooling "
@@ -233,7 +233,7 @@ TEST (XSTRING_TEST, METHOD_FIND_STR_EXIST_SUBSTR) {
     delete[] sub_str;
 }
 
-TEST (XSTRING_TEST, METHOD_FIND_STR_NOT_EXIST_SUBSTR) {
+TEST (CXSTRING_TEST, METHOD_FIND_STR_NOT_EXIST_SUBSTR) {
     const char src[] = "Once upon a time Linus ...";
     cstring str (src);
 
@@ -255,7 +255,7 @@ test_replace_all (const char* src, const char* from, const char* to, const char*
     ASSERT_LE (std::strlen (res), str.capacity ());
 }
 
-TEST (XSTRING_TEST, METHOD_REPLACE_ALL_TO_LE_FROM) {
+TEST (CXSTRING_TEST, METHOD_REPLACE_ALL_TO_LE_FROM) {
     {
         // Empty string
         cstring str;
@@ -305,7 +305,7 @@ TEST (XSTRING_TEST, METHOD_REPLACE_ALL_TO_LE_FROM) {
     }
 }
 
-TEST (XSTRING_TEST, METHOD_REPLACE_ALL_TO_GA_FROM) {
+TEST (CXSTRING_TEST, METHOD_REPLACE_ALL_TO_GA_FROM) {
     test_replace_all ("Hello", "e", "alk! Tre", "Halk! Trello");
 
     test_replace_all ("abbbcccc", "a", "AAA", "AAAbbbcccc");
@@ -324,7 +324,7 @@ TEST (XSTRING_TEST, METHOD_REPLACE_ALL_TO_GA_FROM) {
     test_replace_all ("", "a", "11111111111111111", "");
 }
 
-TEST (XSTRING_TEST, OPERATOR_EQ) {
+TEST (CXSTRING_TEST, OPERATOR_EQ) {
     {
         cstring str1, str2;
         EXPECT_TRUE (str1 == str2);

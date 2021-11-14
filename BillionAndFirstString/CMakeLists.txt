@@ -18,7 +18,7 @@ include_directories (${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
 
 # Add test cpp file
-add_executable (run_unit_tests test_xstring.cpp)
+add_executable (run_unit_tests test_cxstring.cpp test_wxstring.cpp)
 #Link test executable against gtest and gtest_main
 target_link_libraries (run_unit_tests gtest gtest_main)
 
