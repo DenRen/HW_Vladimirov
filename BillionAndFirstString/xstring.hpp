@@ -5,15 +5,17 @@
 #include <cstring>
 #include <iostream>
 #include <algorithm>
+#include "char_traits.hpp"
 
 namespace meta {
 
-template <typename CharT>
+template <typename CharT,
+          typename Traits = char_traits <CharT>>
 class basic_xstring {
 public:
     using size_type = std::size_t;
 
-    static const size_type npos = -2;
+    static const size_type npos = -1;
     static const size_type size_empty = 0;
 
 private:
@@ -43,7 +45,7 @@ public:
         size_ (size_empty),
         cap_ (init_cap)
     {
-        data_[0] = '\0';
+        data_[0] = Traits::eof ();
     }
 
     basic_xstring (basic_xstring&& other) :
@@ -106,7 +108,7 @@ public:
     CharT
     at (size_type pos) const {
         if (pos > size_) {
-            throw std::invalid_argument ("overbound!");
+            throw std::invalid_argument ("Out of range");
         }
 
         return data_[pos];
@@ -128,8 +130,8 @@ public:
     // size without terminated zero
     void
     add (const CharT* str, size_type size) {
-        if (str == nullptr && size == 0) {
-            throw std::invalid_argument ("Empty string!");
+        if (str == nullptr) {
+            throw std::invalid_argument ("Nullpointer exception");
         }
 
         _add (str, size);
@@ -172,7 +174,7 @@ public:
     size_type
     find (const CharT* str) const {
         if (str == nullptr) {
-            throw std::invalid_argument ("null pointer exception");
+            throw std::invalid_argument ("Out of range");
         }
 
         const size_type len = std::strlen (str);
@@ -181,7 +183,7 @@ public:
         }
 
         const CharT* begin = data_, *end = data_ + size_;
-        const CharT* pos = std::search (begin, end, str, str + len);
+        const CharT* pos = std::search (begin, end, str, str + len, Traits::is_equal);
         if (pos == end) {
             return npos;
         }
@@ -222,7 +224,7 @@ private:
 
         std::copy (str, str + size, data_ + size_);
 
-        *(data_ + new_size) = '\0';
+        *(data_ + new_size) = Traits::eof ();
 
         size_ = new_size;
     }
@@ -236,7 +238,9 @@ private:
     void
     _replace_all_from_greater_to (const basic_xstring <CharT>& from, const basic_xstring <CharT>& to) {
         // Capacity will not change
-        CharT* occur = std::search (data_, data_ + size_, from.data_, from.data_ + from.size_);
+        CharT* occur = std::search (data_, data_ + size_,
+                                    from.data_, from.data_ + from.size_,
+                                    Traits::is_equal);
         if (occur == data_ + size_) {
             return;
         }
@@ -250,7 +254,8 @@ private:
 
         while (finder != end_data) {
             occur = std::search (finder, const_cast <CharT*> (end_data),
-                                 from.data_, from.data_ + from.size_);
+                                 from.data_, from.data_ + from.size_,
+                                Traits::is_equal);
             if (occur == end_data) {
                 const size_type size_shift_block = end_data - finder;
                 // Plus 1, because we shift also '\0'
@@ -268,7 +273,7 @@ private:
             finder = occur + from.size_;
         }
 
-        *right_bound = '\0';
+        *right_bound = Traits::eof ();
         size_ = right_bound - data_;
     }
 
@@ -283,7 +288,8 @@ private:
         const CharT* end_data = data_ + size_;
         while (finder != end_data) {
             CharT* occur = std::search (finder, const_cast <CharT*> (end_data),
-                                        from.data_, from.data_ + from.size_);
+                                        from.data_, from.data_ + from.size_,
+                                        Traits::is_equal);
             if (occur == end_data) {
                 break;
             }
@@ -306,7 +312,8 @@ private:
         finder = data_;
         while (finder != end_data) {
             CharT* occur = std::search (finder, const_cast <CharT*> (end_data),
-                                        from.data_, from.data_ + from.size_);
+                                        from.data_, from.data_ + from.size_,
+                                        Traits::is_equal);
             if (occur == end_data) {
                 const size_type size_block = end_data - finder;
                 // Plus 1, because we shift also '\0'
@@ -328,14 +335,18 @@ private:
             finder = occur + from.size_;
         }
 
-        *new_right_bound = '\0';
+        *new_right_bound = Traits::eof ();
 
         delete[] data_;
         data_ = new_data_;
         size_ = new_size;
         cap_ = new_cap;
     }
-};
+
+}; // basic_xstring <CharT>
+
+using cstring = basic_xstring <char>;
+using wstring = basic_xstring <wchar_t>;
 
 } // namespace meta
 

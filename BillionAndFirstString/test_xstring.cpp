@@ -3,7 +3,7 @@
 #include "xstring.hpp"
 #include "gtest/gtest.h"
 
-using cstring = ::meta::basic_xstring <char>;
+using ::meta::cstring;
 using size_type = cstring::size_type;
 
 // Не получается достать (see follow TEST example)
