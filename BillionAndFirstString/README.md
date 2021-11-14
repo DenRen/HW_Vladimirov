@@ -6,6 +6,6 @@ git submodule update
 
 ## Build and test
 ```bash
-mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug ..
-make -j $(nproc) && clear && valgrind ./run_unit_tests --gtest_repeat=3
+mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release ..
+make -j $(nproc) && valgrind -q ./run_unit_tests --gtest_repeat=3
 ```
