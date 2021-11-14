@@ -8,6 +8,7 @@ using size_type = cstring::size_type;
 
 // Не получается достать (see follow TEST example)
 const static cstring::size_type temp_npos = cstring::npos;
+const static cstring::size_type temp_size_empty = cstring::size_empty;
 
 TEST (XSTRING_TEST, STATIC_CONSTS) {
     // TODO: FIX BUG!
@@ -15,7 +16,8 @@ TEST (XSTRING_TEST, STATIC_CONSTS) {
     // #define GEN_BUG
 
     #ifdef GEN_BUG
-    ASSERT_EQ (cstring::size_empty, -1);
+    ASSERT_EQ (cstring::npos, -2);
+    ASSERT_EQ (cstring::size_empty, -0);
     #undef GEN_BUG
     #endif
 
@@ -25,7 +27,7 @@ TEST (XSTRING_TEST, STATIC_CONSTS) {
 TEST (XSTRING_TEST, DEFAULT_CONSTRUCT) {
     cstring str;
 
-    ASSERT_EQ (str.length (), cstring::size_empty);
+    ASSERT_EQ (str.length (), temp_size_empty);
     ASSERT_EQ (str.find ('y'), temp_npos);
     ASSERT_EQ (str.find ('\0'), 0);
     ASSERT_EQ (str.at (0), '\0');
@@ -36,12 +38,17 @@ TEST (XSTRING_TEST, DEFAULT_CONSTRUCT) {
 TEST (XSTRING_TEST, COPY_CONSTRUCT) {
     cstring str;
 
-    ASSERT_EQ (str.length (), cstring::size_empty);
+    ASSERT_EQ (str.length (), temp_size_empty);
     ASSERT_EQ (str.find ('y'), temp_npos);
     ASSERT_EQ (str.find ('\0'), 0);
     ASSERT_EQ (str.at (0), '\0');
 
     ASSERT_TRUE (str.is_empty ());
+}
+
+TEST (XSTRING_TEST, MOVE_CONSTRUCT) {
+    cstring temp ("Hello");
+    cstring str (std::move (temp));
 }
 
 template <typename T, std::size_t N>
@@ -301,7 +308,6 @@ TEST (XSTRING_TEST, METHOD_REPLACE_ALL_TO_GA_FROM) {
 
     test_replace_all ("", "a", "11111111111111111", "");
 }
-
 
 TEST (XSTRING_TEST, OPERATOR_EQ) {
     {

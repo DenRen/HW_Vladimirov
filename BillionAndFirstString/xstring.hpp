@@ -45,13 +45,20 @@ public:
         data_[0] = '\0';
     }
 
-    xstring (xstring&&) = default;
+    xstring (xstring&& other) :
+        size_ (other.size_),
+        cap_ (other.cap_),
+        data_ (other.data_)
+    {
+        other.data_ = nullptr;
+    }
 
     xstring (const xstring& other) :
         data_ (new CharT[_size_buf_from_num_symb (other.size_)]),
         size_ (other.size_),
         cap_ (other.cap_)
     {
+        std::copy (other);
         // Вопрос про memcpy
         for (const auto& symb : other.data_) {
             data_ = symb;
@@ -73,7 +80,8 @@ public:
     }
 
     ~xstring () {
-        delete[] data_;
+        if (data_ != nullptr)
+            delete[] data_;
     }
 
     // Getters string params  -------------------------------------------------
