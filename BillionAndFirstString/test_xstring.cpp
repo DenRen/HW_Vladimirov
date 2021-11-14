@@ -3,7 +3,7 @@
 #include "xstring.hpp"
 #include "gtest/gtest.h"
 
-using cstring = ::meta::xstring <char>;
+using cstring = ::meta::basic_xstring <char>;
 using size_type = cstring::size_type;
 
 // Не получается достать (see follow TEST example)
@@ -12,7 +12,7 @@ const static cstring::size_type temp_size_empty = cstring::size_empty;
 
 TEST (XSTRING_TEST, STATIC_CONSTS) {
     // TODO: FIX BUG!
-    // undefined reference to `meta::xstring<char>::size_empty'
+    // undefined reference to `meta::basic_xstring<char>::size_empty'
     // #define GEN_BUG
 
     #ifdef GEN_BUG
@@ -83,7 +83,7 @@ TEST (XSTRING_TEST, CONST_CHAR_PTR_CONSTRUCT) {
 
 template <typename CharT, std::size_t N>
 static void
-check_on_equal_str (const ::meta::xstring <CharT>& xstr, const CharT (&ref)[N]) {
+check_on_equal_str (const ::meta::basic_xstring <CharT>& xstr, const CharT (&ref)[N]) {
     const auto len_str_ref = str_len (ref);
 
     ASSERT_EQ (xstr.length (), len_str_ref);
@@ -188,17 +188,17 @@ copy_substring (char* dest, const char* begin, const char* end) {
     return dest;
 }
 
-TEST (XSTRING_TEST, METHOD_FIND_STR) {
-    const char src[] = "Once upon a time Linus \
-        Torvalds was a skinny unknown, just another \
-        nerdy Helsinki techie who had been fooling \
-        around with computers since childhood. \
-        Then he wrote a groundbreaking operating \
-        system and distributed it via the Internet \
-        -- for free. Today Torvalds is an international \
-        folk hero. And his creation LINUX is used by \
-        over 12 million people as well as by companies \
-        such as IBM.";
+TEST (XSTRING_TEST, METHOD_FIND_STR_EXIST_SUBSTR) {
+    const char src[] = "Once upon a time Linus "
+                        "Torvalds was a skinny unknown, just another "
+                        "nerdy Helsinki techie who had been fooling "
+                        "around with computers since childhood. "
+                        "Then he wrote a groundbreaking operating "
+                        "system and distributed it via the Internet "
+                        "-- for free. Today Torvalds is an international "
+                        "folk hero. And his creation LINUX is used by "
+                        "over 12 million people as well as by companies "
+                        "such as IBM.";
 
     const size_type len = str_len (src);
     const cstring str (src);
@@ -231,7 +231,16 @@ TEST (XSTRING_TEST, METHOD_FIND_STR) {
     }
 
     delete[] sub_str;
+}
 
+TEST (XSTRING_TEST, METHOD_FIND_STR_NOT_EXIST_SUBSTR) {
+    const char src[] = "Once upon a time Linus ...";
+    cstring str (src);
+
+    ASSERT_EQ (str.find ("100"), temp_npos);
+    ASSERT_EQ (str.find ("fg"), temp_npos);
+    ASSERT_EQ (str.find ("1"), temp_npos);
+    ASSERT_EQ (str.find ("Once upon a time Linus ...!"), temp_npos);
 }
 
 static void

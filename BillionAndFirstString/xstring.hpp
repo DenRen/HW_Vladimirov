@@ -9,7 +9,7 @@
 namespace meta {
 
 template <typename CharT>
-class xstring {
+class basic_xstring {
 public:
     using size_type = std::size_t;
 
@@ -38,7 +38,7 @@ private:
 
 public:
     // Constructos ------------------------------------------------------------
-    xstring () :
+    basic_xstring () :
         data_ (new CharT[_size_buf_from_num_symb (init_cap)]),
         size_ (size_empty),
         cap_ (init_cap)
@@ -46,7 +46,7 @@ public:
         data_[0] = '\0';
     }
 
-    xstring (xstring&& other) :
+    basic_xstring (basic_xstring&& other) :
         size_ (other.size_),
         cap_ (other.cap_),
         data_ (other.data_)
@@ -54,7 +54,7 @@ public:
         other.data_ = nullptr;
     }
 
-    xstring (const xstring& other) :
+    basic_xstring (const basic_xstring& other) :
         data_ (new CharT[_size_buf_from_num_symb (other.size_)]),
         size_ (other.size_),
         cap_ (other.cap_)
@@ -62,11 +62,11 @@ public:
         std::copy (other.data_, other.data_ + size_ + 1, data_);
     }
 
-    xstring (const CharT* str) :
-        xstring (str, _strlen (str)) // Only for char!
+    basic_xstring (const CharT* str) :
+        basic_xstring (str, _strlen (str)) // Only for char!
     {}
 
-    xstring (const CharT* str, size_type size) :
+    basic_xstring (const CharT* str, size_type size) :
         size_ (size),
         cap_ (size_)
     {
@@ -75,7 +75,7 @@ public:
         std::copy (str, str + size_ + 1, data_);
     }
 
-    ~xstring () {
+    ~basic_xstring () {
         delete[] data_;
     }
 
@@ -141,12 +141,12 @@ public:
     }
 
     void inline
-    add (const xstring <CharT>& other) noexcept {
+    add (const basic_xstring <CharT>& other) noexcept {
         _add (other.data_, other.size_);
     }
 
-    xstring <CharT>&
-    operator += (const xstring <CharT>& other) noexcept {
+    basic_xstring <CharT>&
+    operator += (const basic_xstring <CharT>& other) noexcept {
         _add (other.data_, other.size_);
         return *this;
     } // operator += (const xstring <CharT>& other)
@@ -175,12 +175,18 @@ public:
             throw std::invalid_argument ("null pointer exception");
         }
 
-        CharT* pos = nullptr;
-        if ((pos = strstr (data_, str)) == nullptr) {
+        const size_type len = std::strlen (str);
+        if (len > size_) {
             return npos;
         }
 
-        return pos - data_;
+        const CharT* begin = data_, *end = data_ + size_;
+        const CharT* pos = std::search (begin, end, str, str + len);
+        if (pos == end) {
+            return npos;
+        }
+
+        return pos - begin;
     } // find (const CharT* str)
 
     // End of string character allowed
@@ -193,7 +199,7 @@ public:
     } // find (CharT symb)
 
     void
-    relpace_all (const xstring <CharT>& from, const xstring <CharT>& to) {
+    relpace_all (const basic_xstring <CharT>& from, const basic_xstring <CharT>& to) {
         if (from.size_ >= to.size_) {
             _replace_all_from_greater_to (from, to);
         } else {
@@ -202,9 +208,9 @@ public:
     } // relpace_all (const xstring <CharT>& from, const xstring <CharT>& to)
 
     bool
-    is_equal (const xstring <CharT>& other) const {
-        return other.size_ == size_ &&
-               strncmp (other.data_, data_, other.size_) == 0;
+    is_equal (const basic_xstring <CharT>& other) const {
+        return size_ == other.size_ &&
+               std::equal (data_, data_ + size_, other.data_);
     } // is_equal (const xstring <CharT>& other)
 
 private:
@@ -214,13 +220,9 @@ private:
         const size_type new_size = size_ + size;
         reserve (new_size);
 
-        CharT* cur_symb = data_ + size_;
-        const CharT* end_symb = cur_symb + size;
-        while (cur_symb < end_symb) {
-            *cur_symb++ = *str++;
-        }
+        std::copy (str, str + size, data_ + size_);
 
-        *cur_symb = '\0';
+        *(data_ + new_size) = '\0';
 
         size_ = new_size;
     }
@@ -228,18 +230,18 @@ private:
     // witout overmapping
     void
     _mem_left_shift (CharT* src, size_type size, size_type shift) {
-        memcpy (src - shift, src, size);
+        std::copy (src, src + size, src - shift);
     }
 
     void
-    _replace_all_from_greater_to (const xstring <CharT>& from, const xstring <CharT>& to) {
+    _replace_all_from_greater_to (const basic_xstring <CharT>& from, const basic_xstring <CharT>& to) {
         // Capacity will not change
         CharT* occur = strstr (data_, from.data_);
         if (occur == nullptr) {
             return;
         }
 
-        memcpy (occur, to.data_, to.size_);
+        std::copy (to.data_, to.data_ + to.size_, occur);
 
         const size_type _delta = from.size_ - to.size_; // >= 0
         CharT* right_bound = occur + to.size_;
@@ -247,6 +249,7 @@ private:
         const CharT* end_data = data_ + size_;
 
         while (finder != end_data) {
+            // occur = std::search (finder, end_data, from.data_, from.d);
             occur = strstr (finder, from.data_);
             if (occur == nullptr) {
                 const size_type size_shift_block = end_data - finder;
@@ -259,7 +262,7 @@ private:
 
             const size_type size_shift_block = occur - finder;
             _mem_left_shift (finder, size_shift_block, finder - right_bound);
-            memcpy (right_bound + size_shift_block, to.data_, to.size_);
+            std::copy (to.data_, to.data_ + to.size_, right_bound + size_shift_block);
 
             right_bound += size_shift_block + to.size_;
             finder = occur + from.size_;
@@ -270,7 +273,7 @@ private:
     }
 
     void
-    _replace_all_from_less_to (const xstring <CharT>& from, const xstring <CharT>& to) {
+    _replace_all_from_less_to (const basic_xstring <CharT>& from, const basic_xstring <CharT>& to) {
         // Capacity will change
 
         // Calculate new data size
@@ -279,7 +282,7 @@ private:
         CharT* finder = data_;
         const CharT* end_data = data_ + size_;
         while (finder != end_data) {
-            CharT* occur = strstr (finder, from.data_);
+            CharT* occur = std::strstr (finder, from.data_);
             if (occur == nullptr) {
                 break;
             }
@@ -305,7 +308,7 @@ private:
             if (occur == nullptr) {
                 const size_type size_block = end_data - finder;
                 // Plus 1, because we shift also '\0'
-                memcpy (new_right_bound, finder, size_block + 1);
+                std::copy (finder, finder + size_block + 1, new_right_bound);
 
                 delete[] data_;
                 data_ = new_data_;
@@ -316,8 +319,8 @@ private:
             }
 
             const size_type size_block = occur - finder;
-            memcpy (new_right_bound, finder, size_block);
-            memcpy (new_right_bound + size_block, to.data_, to.size_);
+            std::copy (finder, finder + size_block, new_right_bound);
+            std::copy (to.data_, to.data_ + to.size_, new_right_bound + size_block);
 
             new_right_bound += size_block + to.size_;
             finder = occur + from.size_;
@@ -334,31 +337,29 @@ private:
 
 } // namespace meta
 
-// ==,
-
 template <typename CharT>
 bool
-operator == (const ::meta::xstring <CharT>& lhs, const ::meta::xstring <CharT>& rhs) {
+operator == (const ::meta::basic_xstring <CharT>& lhs, const ::meta::basic_xstring <CharT>& rhs) {
     return lhs.is_equal (rhs);
 }
 
 template <typename CharT>
 bool
-operator != (const ::meta::xstring <CharT>& lhs, const ::meta::xstring <CharT>& rhs) {
-    return !lhs.is_equal (rhs);
+operator != (const ::meta::basic_xstring <CharT>& lhs, const ::meta::basic_xstring <CharT>& rhs) {
+    return (lhs == rhs) == false;
 }
 
 // os - может быть неудачное название для output stream
 template <typename CharT>
 std::basic_ostream <CharT>&
-operator << (std::basic_ostream <CharT>& os, const ::meta::xstring <CharT>& xstr) {
+operator << (std::basic_ostream <CharT>& os, const ::meta::basic_xstring <CharT>& xstr) {
     return os << xstr.c_str ();
 }
 
 // is - может быть неудачное название для input stream
 template <typename CharT>
 std::basic_istream <CharT>&
-operator >> (std::basic_istream <CharT>& is, ::meta::xstring <CharT>& xstr) {
+operator >> (std::basic_istream <CharT>& is, ::meta::basic_xstring <CharT>& xstr) {
     throw std::runtime_error ("Need to be implement");
     return is;
 }

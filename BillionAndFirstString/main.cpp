@@ -3,7 +3,7 @@
 #include <vector>
 
 int main () {
-    ::meta::xstring <char> str ("hello");
+    ::meta::basic_xstring <char> str ("hello");
     std::cout << str;
     std::vector <int> v;
 }
