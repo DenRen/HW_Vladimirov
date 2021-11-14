@@ -4,6 +4,7 @@
 #include <string>
 #include <cstring>
 #include <iostream>
+#include <algorithm>
 
 namespace meta {
 
@@ -58,11 +59,7 @@ public:
         size_ (other.size_),
         cap_ (other.cap_)
     {
-        std::copy (other);
-        // Вопрос про memcpy
-        for (const auto& symb : other.data_) {
-            data_ = symb;
-        }
+        std::copy (other.data_, other.data_ + size_ + 1, data_);
     }
 
     xstring (const CharT* str) :
@@ -74,14 +71,12 @@ public:
         cap_ (size_)
     {
         data_ = new CharT[_size_buf_from_num_symb (cap_)];
-        for (std::size_t i = 0; i <= size_; ++i) {
-            data_[i] = str[i];
-        }
+
+        std::copy (str, str + size_ + 1, data_);
     }
 
     ~xstring () {
-        if (data_ != nullptr)
-            delete[] data_;
+        delete[] data_;
     }
 
     // Getters string params  -------------------------------------------------
@@ -122,15 +117,10 @@ public:
         if (new_size > cap_) {
             CharT* const new_buffer = new CharT[_size_buf_from_num_symb (new_size)];
 
-            CharT* cur_new_symb = new_buffer, *cur_symb = data_;
-            const CharT* end_symb = data_ + size_;
-            do {
-                *cur_new_symb++ = *cur_symb++;
-            } while (cur_symb < end_symb);
+            std::copy (data_, data_ + size_ + 1, new_buffer);
+            delete[] data_;
 
             cap_ = new_size;
-
-            delete[] data_;
             data_ = new_buffer;
         }
     }
@@ -185,8 +175,8 @@ public:
             throw std::invalid_argument ("null pointer exception");
         }
 
-        CharT* pos = NULL;
-        if ((pos = strstr (data_, str)) == NULL) {
+        CharT* pos = nullptr;
+        if ((pos = strstr (data_, str)) == nullptr) {
             return npos;
         }
 
@@ -196,122 +186,24 @@ public:
     // End of string character allowed
     size_type
     find (CharT symb) const noexcept {
-        CharT* cur_symb = data_, *end_symb = data_ + size_;
+        const CharT* cbegin = data_, *cend = data_ + size_ + 1;
 
-        do {
-            if (*cur_symb == symb) {
-                return cur_symb - data_;
-            }
-        } while (cur_symb++ < end_symb);
-
-        return npos;
+        auto res = std::find (cbegin, cend, symb);
+        return res == cend ? npos : res - cbegin;
     } // find (CharT symb)
 
     void
     relpace_all (const xstring <CharT>& from, const xstring <CharT>& to) {
-        const size_type len_from = from.size_;
-        const size_type len_to = to.size_;
-
-        if (len_from >= len_to) {
-            // Capacity will not change
-            CharT* occur = strstr (data_, from.data_);
-            if (occur == nullptr) {
-                return;
-            }
-
-            memcpy (occur, to.data_, to.size_);
-
-            const size_type _delta = from.size_ - to.size_; // >= 0
-            CharT* right_bound = occur + to.size_;
-            CharT* finder = occur + from.size_;
-            const CharT* end_data = data_ + size_;
-
-            while (finder != end_data) {
-                occur = strstr (finder, from.data_);
-                if (occur == nullptr) {
-                    const size_type size_shift_block = end_data - finder;
-                    // Plus 1, because we shift also '\0'
-                    _mem_left_shift (finder, size_shift_block + 1, finder - right_bound);
-
-                    size_ = right_bound - data_ + size_shift_block;
-                    return;
-                }
-
-                const size_type size_shift_block = occur - finder;
-                _mem_left_shift (finder, size_shift_block, finder - right_bound);
-                memcpy (right_bound + size_shift_block, to.data_, to.size_);
-
-                right_bound += size_shift_block + to.size_;
-                finder = occur + from.size_;
-            }
-
-            *right_bound = '\0';
-            size_ = right_bound - data_;
+        if (from.size_ >= to.size_) {
+            _replace_all_from_greater_to (from, to);
         } else {
-            // Capacity will change
-
-            // Calculate new data size
-            size_type extra_size = 0;
-
-            CharT* finder = data_;
-            const CharT* end_data = data_ + size_;
-            while (finder != end_data) {
-                CharT* occur = strstr (finder, from.data_);
-                if (occur == nullptr) {
-                    break;
-                }
-
-                extra_size += to.size_ - from.size_;
-                finder = occur + from.size_;
-            }
-
-            if (extra_size == 0) {
-                return;
-            }
-
-            // Fill new buffer and swap data pointers
-            const size_type new_size = size_ + extra_size;
-            const size_type new_cap = _size_buf_from_num_symb (new_size);
-            CharT* const new_data_ = new CharT[new_cap];
-
-            CharT* new_right_bound = new_data_;
-
-            finder = data_;
-            while (finder != end_data) {
-                CharT* occur = strstr (finder, from.data_);
-                if (occur == nullptr) {
-                    const size_type size_block = end_data - finder;
-                    // Plus 1, because we shift also '\0'
-                    memcpy (new_right_bound, finder, size_block + 1);
-
-                    delete[] data_;
-                    data_ = new_data_;
-                    size_ = new_size;
-                    cap_ = new_cap;
-
-                    return;
-                }
-
-                const size_type size_block = occur - finder;
-                memcpy (new_right_bound, finder, size_block);
-                memcpy (new_right_bound + size_block, to.data_, to.size_);
-
-                new_right_bound += size_block + to.size_;
-                finder = occur + from.size_;
-            }
-
-            *new_right_bound = '\0';
-
-            delete[] data_;
-            data_ = new_data_;
-            size_ = new_size;
-            cap_ = new_cap;
+            _replace_all_from_less_to (from, to);
         }
     } // relpace_all (const xstring <CharT>& from, const xstring <CharT>& to)
 
     bool
     is_equal (const xstring <CharT>& other) const {
-        return other.size_ == size_ && 
+        return other.size_ == size_ &&
                strncmp (other.data_, data_, other.size_) == 0;
     } // is_equal (const xstring <CharT>& other)
 
@@ -338,11 +230,111 @@ private:
     _mem_left_shift (CharT* src, size_type size, size_type shift) {
         memcpy (src - shift, src, size);
     }
+
+    void
+    _replace_all_from_greater_to (const xstring <CharT>& from, const xstring <CharT>& to) {
+        // Capacity will not change
+        CharT* occur = strstr (data_, from.data_);
+        if (occur == nullptr) {
+            return;
+        }
+
+        memcpy (occur, to.data_, to.size_);
+
+        const size_type _delta = from.size_ - to.size_; // >= 0
+        CharT* right_bound = occur + to.size_;
+        CharT* finder = occur + from.size_;
+        const CharT* end_data = data_ + size_;
+
+        while (finder != end_data) {
+            occur = strstr (finder, from.data_);
+            if (occur == nullptr) {
+                const size_type size_shift_block = end_data - finder;
+                // Plus 1, because we shift also '\0'
+                _mem_left_shift (finder, size_shift_block + 1, finder - right_bound);
+
+                size_ = right_bound - data_ + size_shift_block;
+                return;
+            }
+
+            const size_type size_shift_block = occur - finder;
+            _mem_left_shift (finder, size_shift_block, finder - right_bound);
+            memcpy (right_bound + size_shift_block, to.data_, to.size_);
+
+            right_bound += size_shift_block + to.size_;
+            finder = occur + from.size_;
+        }
+
+        *right_bound = '\0';
+        size_ = right_bound - data_;
+    }
+
+    void
+    _replace_all_from_less_to (const xstring <CharT>& from, const xstring <CharT>& to) {
+        // Capacity will change
+
+        // Calculate new data size
+        size_type extra_size = 0;
+
+        CharT* finder = data_;
+        const CharT* end_data = data_ + size_;
+        while (finder != end_data) {
+            CharT* occur = strstr (finder, from.data_);
+            if (occur == nullptr) {
+                break;
+            }
+
+            extra_size += to.size_ - from.size_;
+            finder = occur + from.size_;
+        }
+
+        if (extra_size == 0) {
+            return;
+        }
+
+        // Fill new buffer and swap data pointers
+        const size_type new_size = size_ + extra_size;
+        const size_type new_cap = _size_buf_from_num_symb (new_size);
+        CharT* const new_data_ = new CharT[new_cap];
+
+        CharT* new_right_bound = new_data_;
+
+        finder = data_;
+        while (finder != end_data) {
+            CharT* occur = strstr (finder, from.data_);
+            if (occur == nullptr) {
+                const size_type size_block = end_data - finder;
+                // Plus 1, because we shift also '\0'
+                memcpy (new_right_bound, finder, size_block + 1);
+
+                delete[] data_;
+                data_ = new_data_;
+                size_ = new_size;
+                cap_ = new_cap;
+
+                return;
+            }
+
+            const size_type size_block = occur - finder;
+            memcpy (new_right_bound, finder, size_block);
+            memcpy (new_right_bound + size_block, to.data_, to.size_);
+
+            new_right_bound += size_block + to.size_;
+            finder = occur + from.size_;
+        }
+
+        *new_right_bound = '\0';
+
+        delete[] data_;
+        data_ = new_data_;
+        size_ = new_size;
+        cap_ = new_cap;
+    }
 };
 
 } // namespace meta
 
-// ==, 
+// ==,
 
 template <typename CharT>
 bool

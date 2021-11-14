@@ -36,14 +36,10 @@ TEST (XSTRING_TEST, DEFAULT_CONSTRUCT) {
 }
 
 TEST (XSTRING_TEST, COPY_CONSTRUCT) {
-    cstring str;
+    cstring str ("Lol");
+    cstring copt_str (str);
 
-    ASSERT_EQ (str.length (), temp_size_empty);
-    ASSERT_EQ (str.find ('y'), temp_npos);
-    ASSERT_EQ (str.find ('\0'), 0);
-    ASSERT_EQ (str.at (0), '\0');
-
-    ASSERT_TRUE (str.is_empty ());
+    ASSERT_TRUE (str == copt_str);
 }
 
 TEST (XSTRING_TEST, MOVE_CONSTRUCT) {
@@ -55,6 +51,16 @@ template <typename T, std::size_t N>
 constexpr static cstring::size_type
 str_len (const T (&arr)[N]) noexcept {
     return N - 1;
+}
+
+TEST (XSTRING_TEST, METHOD_RESERVE) {
+    const char greeting[] = "Hello";
+    cstring str (greeting);
+
+    for (size_type i = 1; i < 50'000'000; i *= 2) {
+        str.reserve (i * str_len (greeting));
+        ASSERT_STREQ (str.c_str (), greeting);
+    }
 }
 
 TEST (XSTRING_TEST, OTHER_FUNCS_STR_LEN) {
