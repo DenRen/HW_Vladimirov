@@ -217,7 +217,7 @@ public:
                     const size_type size_shift_block = end_data - finder;
                     // Plus 1, because we shift also '\0'
                     _mem_left_shift (finder, size_shift_block + 1, finder - right_bound);
-                    
+
                     size_ = right_bound - data_ + size_shift_block;
                     return;
                 }

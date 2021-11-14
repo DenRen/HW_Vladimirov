@@ -159,17 +159,15 @@ TEST (XSTRING_TEST, OPERATOR_SQUARE_BRACKETS) {
 }
 
 // [begin, end], begin != end
-static char* create_string (const char* begin, const char* end) {
+static char*
+copy_substring (char* dest, const char* begin, const char* end) {
     assert (begin < end);
     const size_type len = end - begin;
 
-    char* str = (char*) calloc (len + 1, sizeof (begin[0]));
-    assert (str != nullptr);
+    memcpy (dest, begin, len * sizeof (char));
+    dest[len] = '\0';
 
-    memcpy (str, begin, len * sizeof (char));
-    str[len] = '\0';
-
-    return str;
+    return dest;
 }
 
 TEST (XSTRING_TEST, METHOD_FIND_STR) {
@@ -186,7 +184,9 @@ TEST (XSTRING_TEST, METHOD_FIND_STR) {
 
     const size_type len = str_len (src);
     const cstring str (src);
-    
+
+    char* sub_str = new char[len];
+
     const int window = 13;
     ASSERT_TRUE (window > 0 && window < str_len (src));
     for (size_type pos_begin = 0; pos_begin < len - window; ++pos_begin) {
@@ -197,7 +197,7 @@ TEST (XSTRING_TEST, METHOD_FIND_STR) {
             ASSERT_TRUE (begin < end);
 
             const size_type len_sub_str = end - begin;
-            char* sub_str = create_string (begin, end);
+            copy_substring (sub_str, begin, end);
 
             // Test for create_string function
             ASSERT_EQ (strncmp (begin, sub_str, len_sub_str), 0)
@@ -209,10 +209,10 @@ TEST (XSTRING_TEST, METHOD_FIND_STR) {
 
             ASSERT_EQ (str.find (sub_str), pos_begin)
                 << "substr: " << sub_str;
-
-            free (sub_str);
         }
     }
+
+    delete[] sub_str;
 
 }
 
