@@ -301,3 +301,26 @@ TEST (XSTRING_TEST, METHOD_REPLACE_ALL_TO_GA_FROM) {
 
     test_replace_all ("", "a", "11111111111111111", "");
 }
+
+
+TEST (XSTRING_TEST, OPERATOR_EQ) {
+    {
+        cstring str1, str2;
+        EXPECT_TRUE (str1 == str2);
+    }
+
+    {
+        cstring str1 ("Hello"), str2 ("Hello");
+        EXPECT_TRUE (str1 == str2);
+    }
+
+    {
+        cstring str1, str2;
+        EXPECT_FALSE (str1 != str2);
+    }
+
+    {
+        cstring str1 ("Hello"), str2 ("Hello, world!");
+        EXPECT_TRUE (str1 != str2);
+    }
+}

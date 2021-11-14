@@ -36,6 +36,7 @@ private:
     }
 
 public:
+    // Constructos ------------------------------------------------------------
     xstring () :
         data_ (new CharT[_size_buf_from_num_symb (init_cap)]),
         size_ (size_empty),
@@ -75,10 +76,28 @@ public:
         delete[] data_;
     }
 
+    // Getters string params  -------------------------------------------------
     CharT*
     c_str () const noexcept {
         return data_;
     }
+
+    size_type inline
+    capacity () const noexcept {
+        return cap_;
+    }
+
+    size_type inline
+    length () const noexcept {
+        return size_;
+    }
+
+    bool inline
+    is_empty () const noexcept {
+        return size_ == size_empty;
+    }
+
+    // Basic string methods ---------------------------------------------------
 
     // Max symbol of pos is end of string character
     CharT
@@ -132,22 +151,7 @@ public:
     operator += (const xstring <CharT>& other) noexcept {
         _add (other.data_, other.size_);
         return *this;
-    }
-
-    size_type inline
-    capacity () const noexcept {
-        return cap_;
-    }
-
-    size_type inline
-    length () const noexcept {
-        return size_;
-    }
-
-    bool inline
-    is_empty () const noexcept {
-        return size_ == size_empty;
-    }
+    } // operator += (const xstring <CharT>& other)
 
     CharT
     operator[] (size_type position) const {
@@ -156,7 +160,7 @@ public:
         }
 
         return data_[position];
-    }
+    } // operator[] (size_type position)
 
     CharT&
     operator[] (size_type position) {
@@ -165,7 +169,7 @@ public:
         }
 
         return data_[position];
-    }
+    } // operator[] (size_type position)
 
     size_type
     find (const CharT* str) const {
@@ -179,7 +183,7 @@ public:
         }
 
         return pos - data_;
-    }
+    } // find (const CharT* str)
 
     // End of string character allowed
     size_type
@@ -193,7 +197,7 @@ public:
         } while (cur_symb++ < end_symb);
 
         return npos;
-    }
+    } // find (CharT symb)
 
     void
     relpace_all (const xstring <CharT>& from, const xstring <CharT>& to) {
@@ -295,7 +299,13 @@ public:
             size_ = new_size;
             cap_ = new_cap;
         }
-    }
+    } // relpace_all (const xstring <CharT>& from, const xstring <CharT>& to)
+
+    bool
+    is_equal (const xstring <CharT>& other) const {
+        return other.size_ == size_ && 
+               strncmp (other.data_, data_, other.size_) == 0;
+    } // is_equal (const xstring <CharT>& other)
 
 private:
     // size without terminated zero
@@ -323,6 +333,20 @@ private:
 };
 
 } // namespace meta
+
+// ==, 
+
+template <typename CharT>
+bool
+operator == (const ::meta::xstring <CharT>& lhs, const ::meta::xstring <CharT>& rhs) {
+    return lhs.is_equal (rhs);
+}
+
+template <typename CharT>
+bool
+operator != (const ::meta::xstring <CharT>& lhs, const ::meta::xstring <CharT>& rhs) {
+    return !lhs.is_equal (rhs);
+}
 
 // os - может быть неудачное название для output stream
 template <typename CharT>
