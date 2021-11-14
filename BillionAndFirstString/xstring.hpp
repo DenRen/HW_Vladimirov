@@ -75,12 +75,14 @@ public:
         delete[] data_;
     }
 
-    CharT* c_str () const noexcept {
+    CharT*
+    c_str () const noexcept {
         return data_;
     }
 
     // Max symbol of pos is end of string character
-    CharT at (size_type pos) const {
+    CharT
+    at (size_type pos) const {
         if (pos > size_) {
             throw std::invalid_argument ("overbound!");
         }
@@ -88,7 +90,8 @@ public:
         return data_[pos];
     }
 
-    void reserve (size_type new_size) {
+    void
+    reserve (size_type new_size) {
         if (new_size > cap_) {
             CharT* const new_buffer = new CharT[_size_buf_from_num_symb (new_size)];
 
@@ -313,7 +316,8 @@ private:
     }
 
     // witout overmapping
-    void _mem_left_shift (CharT* src, size_type size, size_type shift) {
+    void
+    _mem_left_shift (CharT* src, size_type size, size_type shift) {
         memcpy (src - shift, src, size);
     }
 };

@@ -6,13 +6,26 @@
 using cstring = ::meta::xstring <char>;
 using size_type = cstring::size_type;
 
-const static cstring::size_type temp_size_empty = cstring::size_empty;
+// Не получается достать (see follow TEST example)
 const static cstring::size_type temp_npos = cstring::npos;
+
+TEST (XSTRING_TEST, STATIC_CONSTS) {
+    // TODO: FIX BUG!
+    // undefined reference to `meta::xstring<char>::size_empty'
+    // #define GEN_BUG
+
+    #ifdef GEN_BUG
+    ASSERT_EQ (cstring::size_empty, -1);
+    #undef GEN_BUG
+    #endif
+
+    // Similary with cstring::npos
+}
 
 TEST (XSTRING_TEST, DEFAULT_CONSTRUCT) {
     cstring str;
 
-    ASSERT_EQ (str.length (), temp_size_empty);
+    ASSERT_EQ (str.length (), cstring::size_empty);
     ASSERT_EQ (str.find ('y'), temp_npos);
     ASSERT_EQ (str.find ('\0'), 0);
     ASSERT_EQ (str.at (0), '\0');
@@ -23,7 +36,7 @@ TEST (XSTRING_TEST, DEFAULT_CONSTRUCT) {
 TEST (XSTRING_TEST, COPY_CONSTRUCT) {
     cstring str;
 
-    ASSERT_EQ (str.length (), temp_size_empty);
+    ASSERT_EQ (str.length (), cstring::size_empty);
     ASSERT_EQ (str.find ('y'), temp_npos);
     ASSERT_EQ (str.find ('\0'), 0);
     ASSERT_EQ (str.at (0), '\0');
@@ -32,7 +45,8 @@ TEST (XSTRING_TEST, COPY_CONSTRUCT) {
 }
 
 template <typename T, std::size_t N>
-constexpr static cstring::size_type str_len (const T (&arr)[N]) noexcept {
+constexpr static cstring::size_type
+str_len (const T (&arr)[N]) noexcept {
     return N - 1;
 }
 
@@ -52,15 +66,6 @@ TEST (XSTRING_TEST, CONST_CHAR_PTR_CONSTRUCT) {
 
     ASSERT_EQ (str.length (), len);
     ASSERT_TRUE (str.is_empty () == false);
-}
-
-
-TEST (XSTRING_TEST, STATIC_CONSTS) {
-    // TODO: FIX BUG!
-    // undefined reference to `meta::xstring<char>::size_empty'
-    // ASSERT_EQ (cstring::size_empty, -1);
-
-    // Similary with cstring::npos
 }
 
 template <typename CharT, std::size_t N>
