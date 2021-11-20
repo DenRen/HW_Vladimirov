@@ -4,3 +4,6 @@
 [submodule "BillionAndFirstString/googletest"]
 	path = BillionAndFirstString/googletest
 	url = https://github.com/google/googletest
+[submodule "micro_vector/googletest"]
+	path = micro_vector/googletest
+	url = https://github.com/google/googletest

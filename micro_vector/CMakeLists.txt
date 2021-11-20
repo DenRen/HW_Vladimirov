@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 3.0.0)
-project (xstring VERSION 0.1.0)
+project (mivector VERSION 0.1.0)
 
 set (CMAKE_CXX_STANDARD 17)
 
@@ -18,10 +18,10 @@ include_directories (${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
 
 # Add test cpp file
-add_executable (run_unit_tests src/test_cxstring.cpp src/test_wxstring.cpp)
+add_executable (run_unit_tests src/test_mivector.cpp)
 #Link test executable against gtest and gtest_main
 target_link_libraries (run_unit_tests gtest gtest_main)
 
-add_executable (xstring src/main.cpp)
+add_executable (mivector src/main.cpp)
 
 

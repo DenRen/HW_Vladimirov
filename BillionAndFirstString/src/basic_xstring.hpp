@@ -1,5 +1,5 @@
-#ifndef XSTRING_HPP
-#define XSTRING_HPP
+#ifndef BASIC_XSTRING_HPP
+#define BASIC_XSTRING_HPP
 
 #include <string>
 #include <cstring>
@@ -59,7 +59,7 @@ public:
         data_[0] = Traits::eof ();
     }
 
-    basic_xstring (basic_xstring&& other) :
+    basic_xstring (basic_xstring&& other) noexcept :
         size_ (other.size_),
         cap_ (other.cap_),
         data_ (other.data_)
@@ -356,9 +356,6 @@ private:
 
 }; // basic_xstring <CharT>
 
-using cstring = basic_xstring <char>;
-using wstring = basic_xstring <wchar_t>;
-
 } // namespace meta
 
 template <typename CharT>
@@ -388,4 +385,4 @@ operator >> (std::basic_istream <CharT>& is, ::meta::basic_xstring <CharT>& xstr
     return is;
 }
 
-#endif // XSTRING_HPP
+#endif // BASIC_XSTRING_HPP

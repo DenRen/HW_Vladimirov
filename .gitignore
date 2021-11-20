@@ -21,3 +21,7 @@ WrapperCL/books/OpenCL_C.pdf
 BillionAndFirstString/build
 *.gch
 BillionAndFirstString/main
+BillionAndFirstString/.vscode
+micro_vector/.vscode
+micro_vector/build
+hidra/.vscode
