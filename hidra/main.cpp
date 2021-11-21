@@ -12,87 +12,91 @@ using std::cout;
 using std::cerr;
 using std::endl;
 
-#define STRINGIFY(...) #__VA_ARGS__
+template <typename T>
+void test_vector_add_in_arg (const size_t size = 1280000);
+
+template <typename T>
+void test_vector_add        (const size_t size = 1280000);
 
 int
 main (int argc, char* argv[]) {
-    std::vector <cl::Platform> platforms;
-    cl::Platform::get (&platforms);
+    test_vector_add_in_arg <int> ();
+    test_vector_add_in_arg <unsigned> ();
+    test_vector_add_in_arg <long> ();
+    test_vector_add_in_arg <unsigned long> ();
+    
+    test_vector_add <int> ();
+    test_vector_add <unsigned> ();
+    test_vector_add <long> ();
+    test_vector_add <unsigned long> ();
+}
 
-    if (platforms.size () == 0) {
-        cerr << "No platforms" << endl;
-        return -1;
-    }
-    cout << "Founded " << platforms.size () << " platforms" << endl;
+template <typename T>
+void test_vector_add_in_arg (const size_t size) {
+    // Prepare args
 
-    cl::Platform platform;
-    for (auto& iter_platform : platforms) {
-        std::string platform_version = iter_platform.getInfo <CL_PLATFORM_VERSION> ();
-        if (platform_version.find ("OpenCL 3.") != decltype (platform_version)::npos) {
-            platform = iter_platform;
-            break;
-        }
-    }
-
-    if (platform () == NULL) {
-        cerr << "No platforms with OpenCL 3" << endl;
-        return -1;
-    }
-    cout << "Selected " << platform.getInfo <CL_PLATFORM_NAME> () << " platform" << endl;
-
-    std::vector <cl::Device> devices;
-    platform.getDevices (CL_DEVICE_TYPE_GPU, &devices);
-
-
-    for (auto& i : devices) {
-        cout << "Device: " << i.getInfo <CL_DEVICE_NAME> () << endl;
-    }
-
-    cl::Device device = devices[0];
-
-    cl::Context context (device);
-    cl::CommandQueue queue (context);
-
-    const size_t size = 128;
-    std::vector <int> A (size), B (size);
+    // Here we may set folow types: int, long, unsigned, unsigned long
+    std::vector <T> A (size), B (size), ref_res (size);
 
     const size_t buf_size = size * sizeof (A[0]);
 
     for (size_t i = 0; i < size; ++i) {
-        A[i] = i;
-        B[i] = i;
+        A[i] = 14 * i;
+        B[i] = i * i + 34 * i;
+        ref_res[i] = A[i] + B[i];
     }
+
+    // --------------------------------------------------------
+    hidra::DeviceProvider device_provider;
+
+    cl::Device device = device_provider.getDefautDevice ();
+    hidra::Adder adder (device);
     
-    cl::Buffer buf_a (context, CL_MEM_READ_ONLY, buf_size);
-    cl::Buffer buf_b (context, CL_MEM_READ_WRITE, buf_size);
-
-    cl::copy (queue, A.data (), A.data () + size, buf_a);
-    cl::copy (queue, B.data (), B.data () + size, buf_b);
-
-    std::string source_vect_add (STRINGIFY (
-        __kernel void vector_add (__global __read_only int* A, __global __read_write int* B) {
-            int i = get_global_id (0);
-            B[i] = A[i] + B[i];
-        }
-    ));
-
-    cl::Program vect_add_program (context, source_vect_add, true);
-    cl::KernelFunctor <cl::Buffer, cl::Buffer> add_vects (vect_add_program, "vector_add");
-
-    cl::NDRange global (size);
-    cl::NDRange local (64);
-    cl::EnqueueArgs enc_args {queue, global, local};
-
-    add_vects (enc_args, buf_a, buf_b);
-
-    cl::copy (queue, buf_b, B.data (), B.data () + size);
+    adder.vect_add (A.data (), B.data (), B.data (), size);
+    // --------------------------------------------------------
 
     for (size_t i = 0; i < size; ++i) {
-        if (B[i] != i + i) {
+        if (B[i] != ref_res[i]) {
             cerr << "Test failed!" << endl;
             cerr << "Index: i is " << i << endl
-                 << "B[i] = " << B[i] << endl;
-            return -1;
+                 << "B[i] = " << B[i] << ", ref_res[i] = " << ref_res[i] << endl;
+            return;
+        }
+    }
+
+    cout << "Test passsed!" << endl;
+}
+
+template <typename T>
+void test_vector_add (const size_t size) {
+    // Prepare args
+
+    // Here we may set folow types: int, long, unsigned, unsigned long
+    std::vector <T> A (size), B (size), C (size), ref_res (size);
+
+    const size_t buf_size = size * sizeof (A[0]);
+
+    for (size_t i = 0; i < size; ++i) {
+        A[i] = 14 * i;
+        B[i] = i * i + 34 * i;
+        ref_res[i] = A[i] + B[i];
+    }
+
+    // --------------------------------------------------------
+    hidra::DeviceProvider device_provider;
+
+    cl::Device device = device_provider.getDefautDevice ();
+    hidra::Adder adder (device);
+    
+    adder.vect_add (A.data (), B.data (), C.data (), size);
+    // --------------------------------------------------------
+
+    for (size_t i = 0; i < size; ++i) {
+        if (C[i] != ref_res[i]) {
+            cerr << "Test failed!" << endl;
+            cerr << "Index: i is " << i << endl
+                 << "C[i] = " << C[i] << ", ref_res[i] = " << ref_res[i] << endl;
+            return;
         }
     }
 
