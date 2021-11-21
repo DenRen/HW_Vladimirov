@@ -2,33 +2,6 @@
 
 #include <cstdio>
 
-#define PRINT_LOCATION \
-    printf ("In file: %s -> function: %s -> line: %d\n", __FILE__, __PRETTY_FUNCTION__, __LINE__);
-
-#define RETURN_ERROR    \
-    do {                \
-        PRINT_LOCATION; \
-        return -1;      \
-    } while (0)
-
-#define CHECK_CLERROR(result)                       \
-    do {                                            \
-        int _result = (result);                     \
-        if (_result != CL_SUCCESS) {                \
-            printf ("Error code: %d\n", _result);   \
-            RETURN_ERROR;                           \
-        }                                           \
-    } while (0)
-
-#define CHECK_ERROR(result)     \
-    do {                        \
-        int _result = (result); \
-        if (_result == false)   \
-            RETURN_ERROR;       \
-    } while (0)
-
-#define CHECK(result) CHECK_ERROR (result != -1)
-
 static int
 print_platform_param (cl_platform_id platform,
                       cl_platform_info param_name,
@@ -75,7 +48,6 @@ print_platform_info (cl_platform_id platform,
 }
 #undef PRINT
 
-
 static int
 print_device_param (cl_device_id device,
                     cl_device_info param_name,
@@ -104,12 +76,50 @@ static int
 print_device_info (cl_device_id device,
                    bool with_extensions = false)
 {
-    PRINT (device, CL_DEVICE_NAME,      "\t\tName:    %s\n");
-    PRINT (device, CL_DEVICE_VERSION,   "\t\tVersion: %s\n");
-    PRINT (device, CL_DEVICE_PROFILE,   "\t\tProfile: %s\n");
-    PRINT (device, CL_DEVICE_VENDOR,    "\t\tVendor:  %s\n");
+    #define INDENT "\t\t"
 
-    // todo: add type, ...
+    PRINT (device, CL_DEVICE_NAME,    INDENT "Name:    %s\n");
+    PRINT (device, CL_DEVICE_VERSION, INDENT "Version: %s\n");
+    PRINT (device, CL_DEVICE_PROFILE, INDENT "Profile: %s\n");
+    PRINT (device, CL_DEVICE_VENDOR,  INDENT "Vendor:  %s\n");
+
+    cl_device_type device_type;
+    CHECK_CLERROR (clGetDeviceInfo (device, CL_DEVICE_TYPE, sizeof (device_type), &device_type, nullptr));
+    printf (INDENT "Type: %zu\n", device_type);
+
+    cl_uint vendor_id, max_compute_units, max_work_item_dims;
+    size_t max_group_work_size;
+    CHECK_CLERROR (clGetDeviceInfo (device, CL_DEVICE_VENDOR_ID,                sizeof (cl_uint), &vendor_id,           nullptr));
+    CHECK_CLERROR (clGetDeviceInfo (device, CL_DEVICE_MAX_COMPUTE_UNITS,        sizeof (cl_uint), &max_compute_units,   nullptr));
+    CHECK_CLERROR (clGetDeviceInfo (device, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof (cl_uint), &max_work_item_dims,  nullptr));
+    CHECK_CLERROR (clGetDeviceInfo (device, CL_DEVICE_MAX_WORK_GROUP_SIZE,      sizeof (size_t),  &max_group_work_size, nullptr));
+    printf (INDENT "Vendor id: %u\n\n", vendor_id);
+    printf (INDENT "Max compute units: %u\n", max_compute_units);
+    printf (INDENT "Max group work size: %zu\n", max_group_work_size);
+    printf (INDENT "Max work item dimensions: %u\n", max_work_item_dims);
+
+    size_t max_work_item_sizes[max_work_item_dims];
+    CHECK_CLERROR (clGetDeviceInfo (device, CL_DEVICE_MAX_WORK_ITEM_SIZES,
+                                    max_work_item_dims * sizeof (max_work_item_sizes), &max_work_item_sizes, nullptr));
+    printf (INDENT "Max work item sizes:");
+    for (int i = 0; i < max_work_item_dims; ++i) {
+        printf (" %zu", max_work_item_sizes[i]);
+    }
+    printf ("\n");
+
+    cl_uint max_clock_freq;
+    CHECK_CLERROR (clGetDeviceInfo (device, CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof (cl_uint), &max_clock_freq, nullptr));
+    printf (INDENT "Max clock frequency: %u\n\n", max_clock_freq);
+
+    cl_ulong global_mem_size, local_mem_size, glob_mem_cache_size, glob_mem_cacheline_size;
+    CHECK_CLERROR (clGetDeviceInfo (device, CL_DEVICE_GLOBAL_MEM_SIZE,           sizeof (cl_ulong), &global_mem_size,         nullptr));
+    CHECK_CLERROR (clGetDeviceInfo (device, CL_DEVICE_LOCAL_MEM_SIZE,            sizeof (cl_ulong), &local_mem_size,          nullptr));
+    CHECK_CLERROR (clGetDeviceInfo (device, CL_DEVICE_GLOBAL_MEM_CACHE_SIZE,     sizeof (cl_ulong), &glob_mem_cache_size,     nullptr));
+    CHECK_CLERROR (clGetDeviceInfo (device, CL_DEVICE_GLOBAL_MEM_CACHELINE_SIZE, sizeof (cl_ulong), &glob_mem_cacheline_size, nullptr));
+    printf (INDENT "Global memory size: %lu Mbyte\n", global_mem_size / 1024 / 1024);
+    printf (INDENT "Local memory size: %lu Kbyte\n", local_mem_size / 1024);
+    printf (INDENT "Global memory cache size: %lu Kbyte\n", glob_mem_cache_size / 1024);
+    printf (INDENT "Global memory cacheline size: %lu byte\n", glob_mem_cacheline_size);
 
     if (with_extensions)
         PRINT (device, CL_DEVICE_EXTENSIONS, "\t\tExtensions: %s\n");
@@ -175,3 +185,108 @@ print_all_platforms_with_all_devices () {
 
     return 0;
 }
+
+#define STRINGIFY(obj) #obj
+
+int
+sum_array (int* A, int* B, int* res, size_t size) {
+    CHECK_ERROR (A != nullptr && B != nullptr && res != nullptr);
+
+    if (size == 0) {
+        return 0;
+    }
+
+    cl_uint num_platforms;
+    cl_platform_id platform;
+    CHECK_CLERROR (clGetPlatformIDs (1, &platform, &num_platforms));
+    if (num_platforms == 0) {
+        printf ("No platforms!");
+        return -1;
+    }
+
+    cl_uint num_devices;
+    cl_device_id device;
+    CHECK_CLERROR (clGetDeviceIDs (platform, CL_DEVICE_TYPE_GPU, 1, &device, &num_devices));
+    if (num_devices == 0) {
+        printf ("No devices!");
+        return -1;
+    }
+
+    cl_int error_code;
+    cl_context context = clCreateContext (nullptr,
+                                          1, &device,
+                                          nullptr,
+                                          nullptr,
+                                          &error_code);
+    CHECK_CLERROR (error_code);
+
+    cl_command_queue queue = clCreateCommandQueueWithProperties (context, device,
+                                                                 0ull, &error_code);
+    CHECK_CLERROR (error_code);
+
+    const char* vakernel = STRINGIFY (
+        __kernel void vector_add (__global int* A, __global int* B, __global int* res) {
+            int i = get_global_id (0);
+            res[i] = A[i] + B[i];
+        }
+    );
+
+    cl_program program = clCreateProgramWithSource (context,
+                                                    1, &vakernel, nullptr,
+                                                    &error_code);
+    CHECK_CLERROR (error_code);
+
+    CHECK_CLERROR (clBuildProgram (program,
+                                   1, &device,
+                                   nullptr, nullptr, nullptr));
+    cl_kernel kernel = clCreateKernel (program,
+                                       "vector_add",
+                                       &error_code);
+    CHECK_CLERROR (error_code);
+
+    // Fill buffer
+    const size_t size_buffer = size * sizeof (A[0]);
+    cl_mem buffer_A = clCreateBuffer (context, CL_MEM_READ_ONLY, size_buffer, nullptr, &error_code);
+    CHECK_CLERROR (error_code);
+    cl_mem buffer_B = clCreateBuffer (context, CL_MEM_READ_ONLY, size_buffer, nullptr, &error_code);
+    CHECK_CLERROR (error_code);
+    cl_mem buffer_R = clCreateBuffer (context, CL_MEM_WRITE_ONLY, size_buffer, nullptr, &error_code);
+    CHECK_CLERROR (error_code);
+
+    CHECK_CLERROR (clEnqueueWriteBuffer (queue, buffer_A, CL_TRUE,
+                                         0, size_buffer, A,
+                                         0, nullptr, nullptr));
+    CHECK_CLERROR (clEnqueueWriteBuffer (queue, buffer_B, CL_TRUE,
+                                         0, size_buffer, B,
+                                         0, nullptr, nullptr));
+
+    CHECK_CLERROR (clSetKernelArg (kernel, 0, sizeof (cl_mem*), &buffer_A));
+    CHECK_CLERROR (clSetKernelArg (kernel, 1, sizeof (cl_mem*), &buffer_B));
+    CHECK_CLERROR (clSetKernelArg (kernel, 2, sizeof (cl_mem*), &buffer_R));
+
+    CHECK_CLERROR (clEnqueueNDRangeKernel (queue, kernel,
+                                           1, nullptr, &size, nullptr,
+                                           0, nullptr, nullptr));
+
+    CHECK_CLERROR (clEnqueueReadBuffer (queue, buffer_R, CL_TRUE,
+                                        0, size_buffer, res,
+                                        0, nullptr, nullptr));
+
+    CHECK_CLERROR (clFlush (queue));
+    CHECK_CLERROR (clFinish (queue));
+
+    CHECK_CLERROR (clReleaseMemObject (buffer_R));
+    CHECK_CLERROR (clReleaseMemObject (buffer_B));
+    CHECK_CLERROR (clReleaseMemObject (buffer_A));
+
+    CHECK_CLERROR (clReleaseKernel (kernel));
+    CHECK_CLERROR (clReleaseProgram (program));
+    CHECK_CLERROR (clReleaseCommandQueue (queue));
+    CHECK_CLERROR (clReleaseContext (context));
+
+    CHECK_CLERROR (clReleaseDevice (device));
+
+    return 0;
+}
+
+#undef STRINGIFY
