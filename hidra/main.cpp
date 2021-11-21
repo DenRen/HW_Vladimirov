@@ -1,125 +1,109 @@
-#include <CL/cl.h>
+// #define CL_HPP_ENABLE_EXCEPTIONS
+#define CL_HPP_TARGET_OPENCL_VERSION 300
+
 #include <stdio.h>
 #include "mycllib.h"
+#include "cppl.hpp"
+#include <CL/cl2.hpp>
+#include <vector>
+#include <iostream>
 
-int test_summ_array ();
+using std::cout;
+using std::cerr;
+using std::endl;
 
-int learn_buf ();
+#define STRINGIFY(...) #__VA_ARGS__
 
 int
 main (int argc, char* argv[]) {
-    // if (print_all_platforms_with_all_devices () == -1) {
-    //     printf ("Error!\n");
-    // }
+    std::vector <cl::Platform> platforms;
+    cl::Platform::get (&platforms);
 
-    // learn_buf ();
+    if (platforms.size () == 0) {
+        cerr << "No platforms" << endl;
+        return -1;
+    }
+    cout << "Founded " << platforms.size () << " platforms" << endl;
+
+    cl::Platform platform;
+    for (auto& iter_platform : platforms) {
+        std::string platform_version = iter_platform.getInfo <CL_PLATFORM_VERSION> ();
+        if (platform_version.find ("OpenCL 3.") != decltype (platform_version)::npos) {
+            platform = iter_platform;
+            break;
+        }
+    }
+
+    if (platform () == NULL) {
+        cerr << "No platforms with OpenCL 3" << endl;
+        return -1;
+    }
+    cout << "Selected " << platform.getInfo <CL_PLATFORM_NAME> () << " platform" << endl;
+
+    std::vector <cl::Device> devices;
+    platform.getDevices (CL_DEVICE_TYPE_GPU, &devices);
+
+
+    for (auto& i : devices) {
+        cout << "Device: " << i.getInfo <CL_DEVICE_NAME> () << endl;
+    }
+
+    cl::Device device = devices[0];
+
+    cl::Context context (device);
+    cl::CommandQueue queue (context);
+
+    const size_t size = 128;
+    std::vector <int> A (size), B (size);
+
+    const size_t buf_size = size * sizeof (A[0]);
+
+    for (size_t i = 0; i < size; ++i) {
+        A[i] = i;
+        B[i] = i;
+    }
+    
+    cl::Buffer buf_a (context, CL_MEM_READ_ONLY, buf_size);
+    cl::Buffer buf_b (context, CL_MEM_READ_WRITE, buf_size);
+
+    cl::copy (queue, A.data (), A.data () + size, buf_a);
+    cl::copy (queue, B.data (), B.data () + size, buf_b);
+
+    std::string source_vect_add (STRINGIFY (
+        __kernel void vector_add (__global __read_only int* A, __global __read_write int* B) {
+            int i = get_global_id (0);
+            B[i] = A[i] + B[i];
+        }
+    ));
+
+    cl::Program vect_add_program (context, source_vect_add, true);
+    cl::KernelFunctor <cl::Buffer, cl::Buffer> add_vects (vect_add_program, "vector_add");
+
+    cl::NDRange global (size);
+    cl::NDRange local (64);
+    cl::EnqueueArgs enc_args {queue, global, local};
+
+    add_vects (enc_args, buf_a, buf_b);
+
+    cl::copy (queue, buf_b, B.data (), B.data () + size);
+
+    for (size_t i = 0; i < size; ++i) {
+        if (B[i] != i + i) {
+            cerr << "Test failed!" << endl;
+            cerr << "Index: i is " << i << endl
+                 << "B[i] = " << B[i] << endl;
+            return -1;
+        }
+    }
+
+    cout << "Test passsed!" << endl;
+}
+
+void c_style_main () {
+    if (print_all_platforms_with_all_devices () == -1) {
+        printf ("Error!\n");
+    }
+
+    learn_buf ();
     test_summ_array ();
-}
-
-static int
-work_with_buffer (cl_context context, cl_command_queue queue) {
-    const size_t size = 128;
-    int A[size], B[size];
-
-    const size_t size_A = size * sizeof (A[0]);
-
-    for (size_t i = 0; i < size; ++i) {
-        A[i] = 17 * i - 3;
-        B[i] = 0;
-    }
-
-    cl_int error_code;
-    cl_mem buffer = clCreateBuffer (context, CL_MEM_READ_WRITE, size_A,
-                                    nullptr, &error_code);
-    CHECK_CLERROR (error_code);
-
-    CHECK_CLERROR (clEnqueueWriteBuffer (queue, buffer, CL_TRUE, 0, size_A,
-                                         A, 0, nullptr, nullptr));
-
-    CHECK_CLERROR (clEnqueueReadBuffer (queue, buffer, CL_TRUE, 0, size_A,
-                                        B, 0, nullptr, nullptr));
-
-    for (size_t i = 0; i < size; ++i) {
-        if (A[i] != B[i]) {
-            printf ("Test failed! Iter: %d\n", i);
-            printf ("A[i]: %d, B[i]: %d\n", A[i], B[i]);
-            return 0;
-        }
-    }
-
-    printf ("Buffer copyed correctly!\n");
-
-    return 0;
-}
-
-int
-learn_buf () {
-    cl_uint num_platforms;
-    cl_platform_id platform;
-    CHECK_CLERROR (clGetPlatformIDs (1, &platform, &num_platforms));
-    if (num_platforms == 0) {
-        printf ("No platforms!");
-        return -1;
-    }
-
-    cl_uint num_devices;
-    cl_device_id device;
-    CHECK_CLERROR (clGetDeviceIDs (platform, CL_DEVICE_TYPE_GPU, 1, &device, &num_devices));
-    if (num_devices == 0) {
-        printf ("No devices!");
-        return -1;
-    }
-
-    cl_int error_code;
-    cl_context context = clCreateContext (nullptr,
-                                          1, &device,
-                                          nullptr,
-                                          nullptr,
-                                          &error_code);
-    CHECK_CLERROR (error_code);
-
-    cl_command_queue queue = clCreateCommandQueueWithProperties (context, device,
-                                                                 0ull, &error_code);
-    CHECK_CLERROR (error_code);
-
-    CHECK (work_with_buffer (context, queue));
-
-    CHECK_CLERROR (clFlush (queue));
-    CHECK_CLERROR (clFinish (queue));
-
-    CHECK_CLERROR (clReleaseCommandQueue (queue));
-    CHECK_CLERROR (clReleaseContext (context));
-
-    return 0;
-}
-
-int
-test_summ_array () {
-    const size_t size = 128;
-    int A[size], B[size], res[size], ref_res[size];
-
-    for (size_t i = 0; i < size; ++i) {
-        A[i] = 17 * i - 3;
-        B[i] = 3 * i * i - 80 * i + 4;
-
-        res[i] = -777; // Poison
-        ref_res[i] = A[i] + B[i];
-    }
-
-    if (sum_array (A, B, res, size) == -1) {
-        printf ("Error in sum_array!\n");
-        return 0;
-    }
-
-    for (size_t i = 0; i < size; ++i) {
-        if (res[i] != ref_res[i]) {
-            printf ("Test failed! Iter: %d\n", i);
-            printf ("res[i]: %d, ref_res[i]: %d\n", res[i], ref_res[i]);
-            return 0;
-        }
-    }
-
-    printf ("Test passed!\n");
-
-    return 0;
 }

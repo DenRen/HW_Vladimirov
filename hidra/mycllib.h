@@ -36,6 +36,9 @@
 int print_all_platforms_with_all_devices ();
 int sum_array (int* A, int* B, int* res, size_t size);
 
+int learn_buf ();
+int test_summ_array ();
+
 /*
 void step_0 () {
     const int NWTIMES = 512;
