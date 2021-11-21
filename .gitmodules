@@ -7,3 +7,6 @@
 [submodule "micro_vector/googletest"]
 	path = micro_vector/googletest
 	url = https://github.com/google/googletest
+[submodule "hidra/googletest"]
+	path = hidra/googletest
+	url = https://github.com/google/googletest

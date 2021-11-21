@@ -1,38 +1,17 @@
-// #define CL_HPP_ENABLE_EXCEPTIONS
-#define CL_HPP_TARGET_OPENCL_VERSION 300
+#include "gtest/gtest.h"
 
-#include <stdio.h>
-#include "mycllib.h"
-#include "cppl.hpp"
-#include <CL/cl2.hpp>
 #include <vector>
 #include <iostream>
+#include <stdio.h>
+#include <CL/cl2.hpp>
 
-using std::cout;
-using std::cerr;
+#include "../bin/mycllib.h"
+#include "../bin/cppl.hpp"
+
 using std::endl;
 
 template <typename T>
-void test_vector_add_in_arg (const size_t size = 1280000);
-
-template <typename T>
-void test_vector_add        (const size_t size = 1280000);
-
-int
-main (int argc, char* argv[]) {
-    test_vector_add_in_arg <int> ();
-    test_vector_add_in_arg <unsigned> ();
-    test_vector_add_in_arg <long> ();
-    test_vector_add_in_arg <unsigned long> ();
-    
-    test_vector_add <int> ();
-    test_vector_add <unsigned> ();
-    test_vector_add <long> ();
-    test_vector_add <unsigned long> ();
-}
-
-template <typename T>
-void test_vector_add_in_arg (const size_t size) {
+void test_vector_add_in_arg (const size_t size = 1280000) {
     // Prepare args
 
     // Here we may set folow types: int, long, unsigned, unsigned long
@@ -56,19 +35,22 @@ void test_vector_add_in_arg (const size_t size) {
     // --------------------------------------------------------
 
     for (size_t i = 0; i < size; ++i) {
-        if (B[i] != ref_res[i]) {
-            cerr << "Test failed!" << endl;
-            cerr << "Index: i is " << i << endl
-                 << "B[i] = " << B[i] << ", ref_res[i] = " << ref_res[i] << endl;
-            return;
-        }
+        ASSERT_EQ (B[i], ref_res[i])
+            << "Test failed!" << endl
+            << "Index: i is " << i << endl
+            << "B[i] = " << B[i] << ", ref_res[i] = " << ref_res[i] << endl;
     }
+}
 
-    cout << "Test passsed!" << endl;
+TEST (TEST_ADDER, VECTOR_ADD_IN_ARG) {
+    test_vector_add_in_arg <int> ();
+    test_vector_add_in_arg <unsigned> ();
+    test_vector_add_in_arg <long> ();
+    test_vector_add_in_arg <unsigned long> ();
 }
 
 template <typename T>
-void test_vector_add (const size_t size) {
+void test_vector_add (const size_t size = 1280000) {
     // Prepare args
 
     // Here we may set folow types: int, long, unsigned, unsigned long
@@ -92,22 +74,16 @@ void test_vector_add (const size_t size) {
     // --------------------------------------------------------
 
     for (size_t i = 0; i < size; ++i) {
-        if (C[i] != ref_res[i]) {
-            cerr << "Test failed!" << endl;
-            cerr << "Index: i is " << i << endl
-                 << "C[i] = " << C[i] << ", ref_res[i] = " << ref_res[i] << endl;
-            return;
-        }
+        ASSERT_EQ (C[i], ref_res[i])
+            << "Test failed!" << endl
+            << "Index: i is " << i << endl
+            << "C[i] = " << C[i] << ", ref_res[i] = " << ref_res[i] << endl;
     }
-
-    cout << "Test passsed!" << endl;
 }
 
-void c_style_main () {
-    if (print_all_platforms_with_all_devices () == -1) {
-        printf ("Error!\n");
-    }
-
-    learn_buf ();
-    test_summ_array ();
+TEST (TEST_ADDER, VECTOR_ADD) {
+    test_vector_add <int> ();
+    test_vector_add <unsigned> ();
+    test_vector_add <long> ();
+    test_vector_add <unsigned long> ();
 }

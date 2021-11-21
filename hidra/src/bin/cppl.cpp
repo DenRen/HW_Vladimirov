@@ -65,7 +65,7 @@ Adder::Adder (cl::Device device) :
     device_ (device),
     context_ (device_),
     cmd_queue_ (context_),
-    program_ (context_, readSource ("adder.cl"), true)
+    program_ (context_, readSource ("kernels/adder.cl"), true)
 {}
 
 template <>
