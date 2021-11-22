@@ -22,7 +22,7 @@ public:
     std::string getDefaultDeviceName () const;
 
     static std::string dumpAll (); // todo
-};
+}; // class DeviceProvider
 
 class Adder {
     cl::Device device_;
@@ -97,5 +97,34 @@ private:
 
         cl::copy (cmd_queue_, buffer_res, res, res + size);
     }
-}; // Adder
+}; // class Adder
+
+class Sorter {
+    cl::Device device_;
+    cl::Context context_;
+    cl::CommandQueue cmd_queue_;
+
+    cl::Program program_;
+
+public:
+    Sorter (cl::Device device);
+
+    template <typename T>
+    void vect_sort (T* data, size_t size) {
+        const size_t buffer_size = size * sizeof (T);
+
+        cl::Buffer buffer (context_, CL_MEM_READ_WRITE, buffer_size);
+        cl::copy (cmd_queue_, data, data + size, buffer);
+
+        cl::KernelFunctor <cl::Buffer> sort (program_, "vector_sort");
+
+        cl::NDRange global (size / 2);
+        cl::NDRange local (std::min (size / 4, (size_t) 64));
+        cl::EnqueueArgs enc_args {cmd_queue_, global, local};
+
+        sort (enc_args, buffer);
+
+        cl::copy (cmd_queue_, buffer, data, data + size);
+    }
+};
 }

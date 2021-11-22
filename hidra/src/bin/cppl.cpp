@@ -69,7 +69,8 @@ Adder::Adder (cl::Device device) :
 {}
 
 template <>
-std::string_view Adder::getFuncName_VectAddInArg <int> () {
+std::string_view
+Adder::getFuncName_VectAddInArg <int> () {
     return "vector_add_in_arg_i32";
 }
 
@@ -86,28 +87,40 @@ Adder::getFuncName_VectAddInArg <unsigned> () {
 }
 
 template <>
-std::string_view Adder::getFuncName_VectAddInArg <unsigned long> () {
+std::string_view
+Adder::getFuncName_VectAddInArg <unsigned long> () {
     return "vector_add_in_arg_u64";
 }
 
 template <>
-std::string_view Adder::getFuncName_VectAdd <int> () {
+std::string_view
+Adder::getFuncName_VectAdd <int> () {
     return "vector_add_i32";
 }
 
 template <>
-std::string_view Adder::getFuncName_VectAdd <long> () {
+std::string_view
+Adder::getFuncName_VectAdd <long> () {
     return "vector_add_i64";
 }
 
 template <>
-std::string_view Adder::getFuncName_VectAdd <unsigned> () {
+std::string_view
+Adder::getFuncName_VectAdd <unsigned> () {
     return "vector_add_u32";
 }
 
 template <>
-std::string_view Adder::getFuncName_VectAdd <unsigned long> () {
+std::string_view
+Adder::getFuncName_VectAdd <unsigned long> () {
     return "vector_add_u64";
 }
+
+Sorter::Sorter (cl::Device device) :
+    device_ (device),
+    context_ (device_),
+    cmd_queue_ (context_),
+    program_ (context_, readSource ("kernels/sorter.cl"), true)
+{}
 
 }

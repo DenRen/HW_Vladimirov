@@ -1,7 +1,8 @@
 // Vector add int argument ----------------------------------------------------
 
-__kernel void vector_add_in_arg_i32 (__global __read_only  int* A,
-                                     __global __read_write int* B)
+__kernel void
+vector_add_in_arg_i32 (__global __read_only  int* A,
+                       __global __read_write int* B)
 {
     int i = get_global_id (0);
     B[i] = A[i] + B[i];

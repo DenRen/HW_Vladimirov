@@ -10,6 +10,8 @@
 
 using std::endl;
 
+// #define TEST_ALL
+
 template <typename T>
 void test_vector_add_in_arg (const size_t size = 1280000) {
     // Prepare args
@@ -43,10 +45,12 @@ void test_vector_add_in_arg (const size_t size = 1280000) {
 }
 
 TEST (TEST_ADDER, VECTOR_ADD_IN_ARG) {
+#ifdef TEST_ALL
     test_vector_add_in_arg <int> ();
     test_vector_add_in_arg <unsigned> ();
     test_vector_add_in_arg <long> ();
     test_vector_add_in_arg <unsigned long> ();
+#endif // TEST_ALL
 }
 
 template <typename T>
@@ -82,8 +86,10 @@ void test_vector_add (const size_t size = 1280000) {
 }
 
 TEST (TEST_ADDER, VECTOR_ADD) {
+#ifdef TEST_ALL
     test_vector_add <int> ();
     test_vector_add <unsigned> ();
     test_vector_add <long> ();
     test_vector_add <unsigned long> ();
+#endif
 }
