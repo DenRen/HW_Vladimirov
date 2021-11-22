@@ -32,7 +32,7 @@ void
 half_filter (int pos, int* data, size_t size) {
     while (size) {
         swap_if_greater (data, pos, pos + size);
-        barrier (CLK_LOCAL_MEM_FENCE); // Todo сделать деление
+        barrier (CLK_LOCAL_MEM_FENCE);
 
         size_t half_size = size / 2;
         if (pos >= half_size) {
@@ -47,11 +47,9 @@ half_filter (int pos, int* data, size_t size) {
 // size param is half data size
 void
 unifying_network (int pos, int* data, size_t size) {
-    // int pos = get_group_id (0);
-    // size == 4
     swap_if_greater (data, pos, 2 * size - pos - 1);
     barrier (CLK_LOCAL_MEM_FENCE);
-    
+
     int half_size = size / 2;
     if (pos < half_size) {
         half_filter (pos, data, half_size);
@@ -62,14 +60,14 @@ unifying_network (int pos, int* data, size_t size) {
 
 __kernel void
 vector_sort (__global __read_write int* A) {
-    int pos = get_global_id (0);    // 0 1
-    int size = get_global_size (0); // 2
+    int pos = get_global_id (0);
+    int size = get_global_size (0); // Half data size
 
-    // vector_sort_first (A, pos);
+    vector_sort_first (A, pos); // Micro optimization
 
-    int data_size = 2 * size; // 8
+    int data_size = 2 * size;
 
-    for (int i = 1; i <= size; i *= 2) {
+    for (int i = 2; i <= size; i *= 2) {
         int global_pos = pos % i + (pos / i) * (2 * i);
         int new_pos = global_pos % (2 * i);
         int* new_data = A + global_pos - global_pos % i;

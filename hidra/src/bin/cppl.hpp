@@ -124,13 +124,7 @@ public:
 
         sort (enc_args, buffer);
 
-        // cmd_queue_.flush ();
-        // // cmd_queue_.finish ();
-
         cl::copy (cmd_queue_, buffer, data, data + size);
-
-        // cmd_queue_.flush ();
-        // cmd_queue_.finish ();
     }
 
     // Invoke half sorter
@@ -153,7 +147,7 @@ public:
     }
 
 
-    // Invoke half sorter
+    // Invoke unifying network
     template <typename T>
     void unifying_network (T* data, size_t size) {
         const size_t buffer_size = size * sizeof (T);
