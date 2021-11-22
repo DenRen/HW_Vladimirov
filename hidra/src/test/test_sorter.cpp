@@ -10,6 +10,14 @@ using std::cout;
 using std::cerr;
 
 template <typename T, typename U>
+void
+swap_if_greater (T* data, U pos_first, U pos_second) {
+    if (data[pos_first] > data[pos_second]) {
+        std::swap (data[pos_first], data[pos_second]);
+    }
+}
+
+template <typename T, typename U>
 void half_sort (T* data, U size) {
     const U half_size = size / 2;
 
@@ -18,8 +26,9 @@ void half_sort (T* data, U size) {
     }
 
     for (U i = 0; i < half_size; ++i) {
-        if (data[i] > data[i + half_size])
-            std::swap (data[i], data[i + half_size]);
+        swap_if_greater (data, i, i + half_size);
+        // if (data[i] > data[i + half_size])
+            // std::swap (data[i], data[i + half_size]);
     }
 
     half_sort (data, half_size);
@@ -53,7 +62,8 @@ std::ostream& operator << (std::ostream& os, const std::vector <T>& vec) {
     return os << vec[size - 1];
 }
 
-TEST (TEST_SORTER, TEST_HAL_FILTER) {
+TEST (TEST_SORTER, TEST_HALF_FILTER) {
+    return;
     hidra::DeviceProvider device_provider;
     cl::Device device = device_provider.getDefautDevice ();
     hidra::Sorter sorter (device);
@@ -77,6 +87,51 @@ TEST (TEST_SORTER, TEST_HAL_FILTER) {
             ASSERT_TRUE (data == half_sorted_data) <<
                 "data: " << data << endl << endl <<
                 "res:  " << half_sorted_data << endl << endl;
+        }
+    }
+}
+
+template <typename T, typename U>
+void unifying_network (T* data, U size) {
+    for (U i = 0; i < size / 2; ++i) {
+        swap_if_greater (data, i, size - i - 1);
+    }
+    
+    half_sort (data, size / 2);
+    half_sort (data + size / 2, size / 2);
+}
+
+template <typename T>
+void unifying_network (std::vector <T>& vec) {
+    unifying_network (vec.data (), vec.size ());
+}
+
+TEST (TEST_SORTER, TEST_UNIFUING_NETWORK) {
+    hidra::DeviceProvider device_provider;
+    cl::Device device = device_provider.getDefautDevice ();
+    hidra::Sorter sorter (device);
+
+    const size_t max_size_arr = 2 << 10; // Max 2 << 11
+    const size_t repeat = 10;
+
+    for (size_t i = 4; i < max_size_arr; i *= 2) {
+        std::vector <int> data (i);
+        for (size_t j = 0; j < repeat; ++j) {
+            // Fill data
+            for (size_t k = 0; k < i; ++k) {
+                data[k] = 10 * std::sin (j + 10 * k) - k;
+            }
+            // cout << "data: " << data << endl;
+
+            std::vector <int> ref_data = data;
+            unifying_network (ref_data);
+            // cout << "undt: " << ref_data << endl;
+
+            sorter.unifying_network (data.data (), data.size ());
+
+            ASSERT_TRUE (data == ref_data) <<
+                "ref: " << ref_data << endl << endl <<
+                "res: " << data << endl << endl;
         }
     }
 }

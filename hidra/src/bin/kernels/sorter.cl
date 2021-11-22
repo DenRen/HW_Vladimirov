@@ -46,8 +46,8 @@ half_filter (int pos, int* data, size_t size) {
 
 // size param is half data size
 void
-unifying_network (int* data, size_t size) {
-    int pos = get_group_id (0);
+unifying_network (int pos, int* data, size_t size) {
+    // int pos = get_group_id (0);
     // size == 4
     swap_if_greater (data, pos, 2 * size - pos - 1);
 
@@ -64,7 +64,7 @@ vector_sort (__global __read_write int* A) {
     int pos = get_global_id (0);    // 0 1
     int size = get_global_size (0); // 2
 
-    unifying_network (A, size);
+    unifying_network (pos, A, size);
     return;
 
     // vector_sort_first (A, pos);
@@ -76,13 +76,19 @@ vector_sort (__global __read_write int* A) {
         int new_pos = global_pos % (2 * i);
         int* new_data = A + global_pos - global_pos % i;
 
-        unifying_network (new_data, new_pos);
+        unifying_network (new_pos, new_data, i);
     }
 }
 
-// For test
+// For test ---------------------------------------------------
 __kernel void
 _half_filter (__global __read_write int* data, ulong size) {
     int pos = get_global_id (0);
     half_filter (pos, data, size);
+}
+
+__kernel void
+_unifying_network (__global __read_write int* data, ulong size) {
+    int pos = get_global_id (0);
+    unifying_network (pos, data, size);
 }
