@@ -119,12 +119,18 @@ public:
         cl::KernelFunctor <cl::Buffer> sort (program_, "vector_sort");
 
         cl::NDRange global (size / 2);
-        cl::NDRange local (std::min (size / 4, (size_t) 64));
+        cl::NDRange local (std::max (size / 2, 1ul));
         cl::EnqueueArgs enc_args {cmd_queue_, global, local};
 
         sort (enc_args, buffer);
 
+        // cmd_queue_.flush ();
+        // // cmd_queue_.finish ();
+
         cl::copy (cmd_queue_, buffer, data, data + size);
+
+        // cmd_queue_.flush ();
+        // cmd_queue_.finish ();
     }
 
     // Invoke half sorter

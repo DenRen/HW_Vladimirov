@@ -4,6 +4,7 @@
 #include <vector>
 #include <algorithm>
 #include <cmath>
+#include <random>
 
 using std::endl;
 using std::cout;
@@ -68,15 +69,19 @@ TEST (TEST_SORTER, TEST_HALF_FILTER) {
     cl::Device device = device_provider.getDefautDevice ();
     hidra::Sorter sorter (device);
 
+    std::random_device rd; 
+    std::mt19937 mersenne(rd());
+
     const size_t max_size_arr = 2 << 11; // Max 2 << 11
-    const size_t repeat = 30;
+    const size_t repeat = 100;
 
     for (size_t i = 2; i < max_size_arr; i *= 2) {
         std::vector <int> data (i);
         for (size_t j = 0; j < repeat; ++j) {
             // Fill data
             for (size_t k = 0; k < i; ++k) {
-                data[k] = 10 * sin (j + 10 * k) - k;
+                // data[k] = 10 * sin (j + 10 * k) - k;
+                data[k] = mersenne ();
             }
 
             std::vector <int> half_sorted_data = data;
@@ -107,19 +112,24 @@ void unifying_network (std::vector <T>& vec) {
 }
 
 TEST (TEST_SORTER, TEST_UNIFUING_NETWORK) {
+    return;
     hidra::DeviceProvider device_provider;
     cl::Device device = device_provider.getDefautDevice ();
     hidra::Sorter sorter (device);
 
-    const size_t max_size_arr = 2 << 10; // Max 2 << 11
-    const size_t repeat = 10;
+    std::random_device rd; 
+    std::mt19937 mersenne(rd());
 
-    for (size_t i = 4; i < max_size_arr; i *= 2) {
+    const size_t max_size_arr = 2 << 11; // Max 2 << 10
+    const size_t repeat = 100;
+
+    for (size_t i = 2; i < max_size_arr; i *= 2) {
         std::vector <int> data (i);
         for (size_t j = 0; j < repeat; ++j) {
             // Fill data
             for (size_t k = 0; k < i; ++k) {
-                data[k] = 10 * std::sin (j + 10 * k) - k;
+                // data[k] = 10 * std::sin (j + 10 * k) - k;
+                data[k] = mersenne ();
             }
             // cout << "data: " << data << endl;
 
@@ -136,42 +146,67 @@ TEST (TEST_SORTER, TEST_UNIFUING_NETWORK) {
     }
 }
 
-TEST (TEST_SORTER, SIMPLE) {
-    return;
-    const size_t size = 1 << 2;     // TODO: if size == 1
-    std::vector <int> A { 1, 5, 0, 7, 3, 4, 8, 1 };
-
-    // for (int i = 0; i < size; ++i) {
-    //     // A[i] = 10 * std::sin (i * 10);
-    //     A[i] = -i * i + 3;
-    // }
-    
-    std::cout << std::endl << std::endl;
-    for (const auto& value : A) {
-        std::cout << value << " ";
-    }
-
-    // --------------------------------------------------------
+TEST (TEST_SORTER, TEST_VECTOR_SORT) {
+    // return;
     hidra::DeviceProvider device_provider;
     cl::Device device = device_provider.getDefautDevice ();
-
     hidra::Sorter sorter (device);
-    // --------------------------------------------------------
 
-    auto ref_res = A;
-    std::sort (ref_res.begin (), ref_res.end ());
+    std::random_device rd; 
+    std::mt19937 mersenne(rd());
 
-    auto res = A;
-    sorter.vect_sort (res.data (), res.size ());
+    const size_t max_size_arr = 2 << 8; // Max 2 << 10
+    const size_t repeat = 30;
 
-    std::cout << std::endl << std::endl;
-    for (const auto& value : res) {
-        std::cout << value << " ";
+    for (size_t i = 4; i < max_size_arr; i *= 2) {
+        std::vector <int> data (i);
+        for (size_t j = 0; j < repeat; ++j) {
+            // Fill data
+            for (size_t k = 0; k < i; ++k) {
+                // data[k] = 10 * std::sin (j + 10 * k) - k;
+                data[k] = mersenne ();
+            }
+            // cout << "data: " << data << endl;
+
+            std::vector <int> ref_data = data;
+            std::sort (ref_data.begin (), ref_data.end ());
+            // cout << "undt: " << ref_data << endl;
+
+            sorter.vect_sort (data.data (), data.size ());
+
+            ASSERT_TRUE (data == ref_data) <<
+                "ref: " << ref_data << endl << endl <<
+                "res: " << data << endl << endl;
+        }
     }
-    std::cout << std::endl << std::endl;
 
-    for (int i = 0; i < size; ++i) {
-        ASSERT_EQ (ref_res[i], res[i]);
-    }
+    // // --------------------------------------------------------
+    // hidra::DeviceProvider device_provider;
+    // cl::Device device = device_provider.getDefautDevice ();
 
+    // hidra::Sorter sorter (device);
+    // // --------------------------------------------------------
+
+    // const size_t size = 1 << 8;     // TODO: if size == 1
+    // std::vector <int> A (size)/* { 1, 5, 0, 7, 3, 4, 8, 1 }*/;
+
+    // for (int i = 0; i < size; ++i) {
+    //     A[i] = 100 * std::sin (i * 10);
+    //     // A[i] = -i * i + 3;
+    // }
+    
+    // print_vector (A);
+
+    // auto ref_res = A;
+    // std::sort (ref_res.begin (), ref_res.end ());
+
+    // auto res = A;
+    // sorter.vect_sort (res.data (), res.size ());
+
+    // print_vector (res);
+    // std::cout << std::endl;
+
+    // for (size_t i = 0; i < size; ++i) {
+    //     ASSERT_EQ (ref_res[i], res[i]);
+    // }
 }

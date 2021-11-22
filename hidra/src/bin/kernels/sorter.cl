@@ -50,7 +50,8 @@ unifying_network (int pos, int* data, size_t size) {
     // int pos = get_group_id (0);
     // size == 4
     swap_if_greater (data, pos, 2 * size - pos - 1);
-
+    barrier (CLK_LOCAL_MEM_FENCE);
+    
     int half_size = size / 2;
     if (pos < half_size) {
         half_filter (pos, data, half_size);
@@ -64,9 +65,6 @@ vector_sort (__global __read_write int* A) {
     int pos = get_global_id (0);    // 0 1
     int size = get_global_size (0); // 2
 
-    unifying_network (pos, A, size);
-    return;
-
     // vector_sort_first (A, pos);
 
     int data_size = 2 * size; // 8
@@ -77,6 +75,7 @@ vector_sort (__global __read_write int* A) {
         int* new_data = A + global_pos - global_pos % i;
 
         unifying_network (new_pos, new_data, i);
+        barrier (CLK_LOCAL_MEM_FENCE);
     }
 }
 
