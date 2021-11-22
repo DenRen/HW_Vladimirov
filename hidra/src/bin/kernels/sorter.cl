@@ -79,3 +79,10 @@ vector_sort (__global __read_write int* A) {
         unifying_network (new_data, new_pos);
     }
 }
+
+// For test
+__kernel void
+_half_filter (__global __read_write int* data, ulong size) {
+    int pos = get_global_id (0);
+    half_filter (pos, data, size);
+}
