@@ -4,6 +4,8 @@ project (main VERSION 0.1.0)
 set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
 
+add_compile_definitions (CL_HPP_ENABLE_EXCEPTIONS)
+
 # Handle OpenCL
 find_package(OpenCL REQUIRED)
 include_directories(${OpenCL_INCLUDE_DIRS})

@@ -1,7 +1,8 @@
 #pragma once
 
-#define __CL_ENABLE_EXCEPTIONS
+#define CL_HPP_ENABLE_EXCEPTIONS
 #include "CL/cl2.hpp"
+#include <iostream>
 
 namespace hidra {
 
@@ -16,7 +17,7 @@ public:
                     std::string_view version = "OpenCL 3.");
 
     cl::Platform getDefaultPlatform () const;
-    cl::Device getDefautDevice () const;
+    cl::Device getDefaultDevice () const;
 
     std::string getDefaultPlatformName () const;
     std::string getDefaultDeviceName () const;
@@ -35,7 +36,8 @@ public:
     Adder (cl::Device device);
 
     template <typename T>
-    void vect_add (T* A, T* B, T* res, size_t size) {
+    void
+    vect_add (T* A, T* B, T* res, size_t size) {
         if (res == A) {
             vect_add_in_arg (B, A, size);
         } else if (res == B) {
@@ -51,7 +53,8 @@ private:
 
     // Result is write in B
     template <typename T>
-    void vect_add_in_arg (T* A, T* B, size_t size) {
+    void
+    vect_add_in_arg (T* A, T* B, size_t size) {
         const size_t buf_size = size * sizeof (T);
 
         cl::Buffer buffer_A (context_, CL_MEM_READ_ONLY, buf_size);
@@ -76,7 +79,8 @@ private:
     std::string_view getFuncName_VectAdd ();
 
     template <typename T>
-    void _vect_add (T* A, T* B, T* res, size_t size) {
+    void
+    _vect_add (T* A, T* B, T* res, size_t size) {
         const size_t buf_size = size * sizeof (T);
 
         cl::Buffer buffer_A (context_, CL_MEM_READ_ONLY, buf_size);
@@ -110,26 +114,44 @@ public:
     Sorter (cl::Device device);
 
     template <typename T>
-    void vect_sort (T* data, size_t size) {
+    void
+    vect_sort (std::vector <T>& vec) {
+        vect_sort (vec.data (), vec.size ());
+    }
+
+    template <typename T>
+    void 
+    vect_sort (T* data, size_t size) {
         const size_t buffer_size = size * sizeof (T);
 
-        cl::Buffer buffer (context_, CL_MEM_READ_WRITE, buffer_size);
-        cl::copy (cmd_queue_, data, data + size, buffer);
+        cl::Buffer buffer (context_, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR ,
+                           buffer_size, data);
+        const std::string name_kernel = "vector_sort";
 
-        cl::KernelFunctor <cl::Buffer> sort (program_, "vector_sort");
+        try {
+            cl::Kernel kernel (program_, name_kernel.c_str ());
+            cl::KernelFunctor <cl::Buffer> sort (kernel);
 
-        cl::NDRange global (size / 2);
-        cl::NDRange local (std::max (size / 2, 1ul));
-        cl::EnqueueArgs enc_args {cmd_queue_, global, local};
+            cl::NDRange global (size / 2);
+            cl::NDRange local (std::max (size / 2, 1ul));
+            cl::EnqueueArgs enc_args {cmd_queue_, global, local};
 
-        sort (enc_args, buffer);
+            sort (enc_args, buffer);
+        } catch (cl::Error& exc) {
+            std::cerr << "Failed to create kernel from \"" << name_kernel
+                      << "\"" << std::endl << std::flush;
+
+            throw;
+        }
+
 
         cl::copy (cmd_queue_, buffer, data, data + size);
     }
 
     // Invoke half sorter
     template <typename T>
-    void half_sort (T* data, size_t size) {
+    void
+    half_sort (T* data, size_t size) {
         const size_t buffer_size = size * sizeof (T);
 
         cl::Buffer buffer (context_, CL_MEM_READ_WRITE, buffer_size);
@@ -149,7 +171,8 @@ public:
 
     // Invoke unifying network
     template <typename T>
-    void unifying_network (T* data, size_t size) {
+    void
+    unifying_network (T* data, size_t size) {
         const size_t buffer_size = size * sizeof (T);
 
         cl::Buffer buffer (context_, CL_MEM_READ_WRITE, buffer_size);

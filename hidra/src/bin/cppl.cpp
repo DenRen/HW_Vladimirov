@@ -32,7 +32,11 @@ DeviceProvider::DeviceProvider (cl_device_type device_type,
     }
 
     if (defualt_device_ () == nullptr) {
-        throw cl::Error (0, "Device not dounf in platform!");
+        std::string err_msg ("Device with version");
+        err_msg += version;
+        err_msg += "not found in platform!";
+
+        throw cl::Error (0, err_msg.c_str ());
     }
 }
 
@@ -40,7 +44,7 @@ cl::Platform
 DeviceProvider::getDefaultPlatform () const {
     return default_platform_;
 }
-cl::Device DeviceProvider::getDefautDevice () const {
+cl::Device DeviceProvider::getDefaultDevice () const {
     return defualt_device_;
 }
 
@@ -120,7 +124,24 @@ Sorter::Sorter (cl::Device device) :
     device_ (device),
     context_ (device_),
     cmd_queue_ (context_),
-    program_ (context_, readSource ("kernels/sorter.cl"), true)
-{}
+    program_ (context_, readSource ("kernels/sorter.cl"))
+{
+    try {
+        program_.build ();
+    } catch (cl::Error& exc) {
+        cl_int buildError = CL_SUCCESS;
+
+        auto buildInfo = program_.getBuildInfo <CL_PROGRAM_BUILD_LOG> (&buildError);
+
+        for (const auto& pair : buildInfo) {
+            auto device = pair.first.getInfo <CL_DEVICE_NAME> ();
+            auto build_error_msg = pair.second;
+            std::cerr << "Device: " << device << std::endl;
+            std::cerr << "Build msg: " << build_error_msg << std::endl;
+        }
+
+        throw;
+    }
+}
 
 }

@@ -3,14 +3,13 @@
 #include <vector>
 #include <iostream>
 #include <stdio.h>
-#include <CL/cl2.hpp>
 
 #include "../bin/mycllib.h"
 #include "../bin/cppl.hpp"
 
 using std::endl;
 
-// #define TEST_ALL
+#define TEST_ALL
 
 template <typename T>
 void test_vector_add_in_arg (const size_t size = 1280000) {
@@ -30,7 +29,7 @@ void test_vector_add_in_arg (const size_t size = 1280000) {
     // --------------------------------------------------------
     hidra::DeviceProvider device_provider;
 
-    cl::Device device = device_provider.getDefautDevice ();
+    cl::Device device = device_provider.getDefaultDevice ();
     hidra::Adder adder (device);
     
     adder.vect_add (A.data (), B.data (), B.data (), size);
@@ -71,7 +70,7 @@ void test_vector_add (const size_t size = 1280000) {
     // --------------------------------------------------------
     hidra::DeviceProvider device_provider;
 
-    cl::Device device = device_provider.getDefautDevice ();
+    cl::Device device = device_provider.getDefaultDevice ();
     hidra::Adder adder (device);
     
     adder.vect_add (A.data (), B.data (), C.data (), size);

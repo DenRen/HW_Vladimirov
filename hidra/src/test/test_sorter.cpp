@@ -64,16 +64,16 @@ std::ostream& operator << (std::ostream& os, const std::vector <T>& vec) {
 
 TEST (TEST_SORTER, TEST_HALF_FILTER) {
     hidra::DeviceProvider device_provider;
-    cl::Device device = device_provider.getDefautDevice ();
+    cl::Device device = device_provider.getDefaultDevice ();
     hidra::Sorter sorter (device);
 
     std::random_device rd;
     std::mt19937 mersenne(rd());
 
-    const size_t max_size_arr = 1 << 12; // Max 1 << 11
+    const size_t max_size_arr = 1 << 11; // Max 1 << 11
     const size_t repeat = 100;
 
-    for (size_t i = 2; i < max_size_arr; i *= 2) {
+    for (size_t i = 2; i <= max_size_arr; i *= 2) {
         std::vector <int> data (i);
         for (size_t j = 0; j < repeat; ++j) {
             // Fill data
@@ -110,16 +110,16 @@ void unifying_network (std::vector <T>& vec) {
 
 TEST (TEST_SORTER, TEST_UNIFUING_NETWORK) {
     hidra::DeviceProvider device_provider;
-    cl::Device device = device_provider.getDefautDevice ();
+    cl::Device device = device_provider.getDefaultDevice ();
     hidra::Sorter sorter (device);
 
     std::random_device rd;
     std::mt19937 mersenne(rd());
 
-    const size_t max_size_arr = 1 << 12; // Max 2 << 11
+    const size_t max_size_arr = 1 << 11; // Max 1 << 11
     const size_t repeat = 100;
 
-    for (size_t i = 2; i < max_size_arr; i *= 2) {
+    for (size_t i = 2; i <= max_size_arr; i *= 2) {
         std::vector <int> data (i);
         for (size_t j = 0; j < repeat; ++j) {
             // Fill data
@@ -141,16 +141,16 @@ TEST (TEST_SORTER, TEST_UNIFUING_NETWORK) {
 
 TEST (TEST_SORTER, TEST_VECTOR_SORT) {
     hidra::DeviceProvider device_provider;
-    cl::Device device = device_provider.getDefautDevice ();
+    cl::Device device = device_provider.getDefaultDevice ();
     hidra::Sorter sorter (device);
 
     std::random_device rd;
     std::mt19937 mersenne(rd());
 
-    const size_t max_size_arr = 1 << 12; // Max 2 << 10
+    const size_t max_size_arr = 1 << 11; // Max 1 << 11
     const size_t repeat = 100;
 
-    for (size_t i = 4; i < max_size_arr; i *= 2) {
+    for (size_t i = 4; i <= max_size_arr; i *= 2) {
         std::vector <int> data (i);
         for (size_t j = 0; j < repeat; ++j) {
             // Fill data

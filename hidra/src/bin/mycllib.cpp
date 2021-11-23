@@ -111,15 +111,16 @@ print_device_info (cl_device_id device,
     CHECK_CLERROR (clGetDeviceInfo (device, CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof (cl_uint), &max_clock_freq, nullptr));
     printf (INDENT "Max clock frequency: %u\n\n", max_clock_freq);
 
-    cl_ulong global_mem_size, local_mem_size, glob_mem_cache_size, glob_mem_cacheline_size;
+    cl_ulong global_mem_size, local_mem_size, glob_mem_cache_size;
+    cl_uint glob_mem_cacheline_size;
     CHECK_CLERROR (clGetDeviceInfo (device, CL_DEVICE_GLOBAL_MEM_SIZE,           sizeof (cl_ulong), &global_mem_size,         nullptr));
     CHECK_CLERROR (clGetDeviceInfo (device, CL_DEVICE_LOCAL_MEM_SIZE,            sizeof (cl_ulong), &local_mem_size,          nullptr));
     CHECK_CLERROR (clGetDeviceInfo (device, CL_DEVICE_GLOBAL_MEM_CACHE_SIZE,     sizeof (cl_ulong), &glob_mem_cache_size,     nullptr));
-    CHECK_CLERROR (clGetDeviceInfo (device, CL_DEVICE_GLOBAL_MEM_CACHELINE_SIZE, sizeof (cl_ulong), &glob_mem_cacheline_size, nullptr));
+    CHECK_CLERROR (clGetDeviceInfo (device, CL_DEVICE_GLOBAL_MEM_CACHELINE_SIZE, sizeof (cl_uint),  &glob_mem_cacheline_size, nullptr));
     printf (INDENT "Global memory size: %lu Mbyte\n", global_mem_size / 1024 / 1024);
     printf (INDENT "Local memory size: %lu Kbyte\n", local_mem_size / 1024);
     printf (INDENT "Global memory cache size: %lu Kbyte\n", glob_mem_cache_size / 1024);
-    printf (INDENT "Global memory cacheline size: %lu byte\n", glob_mem_cacheline_size);
+    printf (INDENT "Global memory cacheline size: %u byte\n", glob_mem_cacheline_size);
 
     if (with_extensions)
         PRINT (device, CL_DEVICE_EXTENSIONS, "\t\tExtensions: %s\n");
