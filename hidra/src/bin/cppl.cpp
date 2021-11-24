@@ -164,7 +164,7 @@ getAllDeviceInfo (std::stringstream& stream, const cl::Device& device) {
         PRINT ("Max samplers",              CL_DEVICE_MAX_SAMPLERS)
         PRINT ("Memory base addr align",    CL_DEVICE_MEM_BASE_ADDR_ALIGN)
         PRINT ("Min data type align size",  CL_DEVICE_MIN_DATA_TYPE_ALIGN_SIZE)
-        PRINT ("Single FP config",          CL_DEVICE_SINGLE_FP_CONFIG)
+        PRINT ("Single FP config",          CL_DEVICE_SINGLE_FP_CONFIG) // todo
         << std::endl
         PRINT ("Global memory cache type",      CL_DEVICE_GLOBAL_MEM_CACHE_TYPE)
         PRINT ("Global memory cache line size", CL_DEVICE_GLOBAL_MEM_CACHELINE_SIZE)
