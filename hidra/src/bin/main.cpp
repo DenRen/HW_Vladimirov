@@ -3,8 +3,16 @@
 #include "mycllib.h"
 #include "cppl.hpp"
 
+void sotr_cin ();
+
 int
 main (int argc, char* argv[]) {
+    hidra::DeviceProvider device_provider;
+    std::cout << device_provider.dumpAll () << std::endl;
+}
+
+void
+sotr_cin () {
     hidra::DeviceProvider device_provider;
     cl::Device device (device_provider.getDefaultDevice ());
     hidra::Sorter sorter (device);

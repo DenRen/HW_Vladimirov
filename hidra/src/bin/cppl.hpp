@@ -22,7 +22,7 @@ public:
     std::string getDefaultPlatformName () const;
     std::string getDefaultDeviceName () const;
 
-    static std::string dumpAll (); // todo
+    static std::string dumpAll ();
 }; // class DeviceProvider
 
 class Adder {
