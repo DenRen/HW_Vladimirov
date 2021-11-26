@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <random>
 
 #include "mycllib.h"
 #include "cppl.hpp"
@@ -34,7 +35,7 @@ main (int argc, char* argv[]) {
     cl::Context context (device);
     cl::CommandQueue cmd_queue (context);
 
-    const std::string source_name = "kernels/test_local.cl";
+    const std::string source_name = "kernels/sorter_v2.cl";
     using stream = std::istreambuf_iterator <std::string::traits_type::char_type>;
 
     std::ifstream source_file (source_name);
@@ -58,25 +59,59 @@ main (int argc, char* argv[]) {
         throw;
     }
 
-    std::vector <cl_int2> arr (2);
+    std::random_device rd;
+    std::mt19937 mersenne(rd());
+
+    const int size_arg = 16;
+    std::vector <cl_int16> arr (4);
     for (auto& item : arr) {
-        item.s[0] = 0;
-        item.s[1] = 0;
+        for (int i = 0; i < size_arg; ++i) {
+            item.s[i] = mersenne ();
+        }
     }
 
-    cl::Buffer buffer (context, CL_MEM_READ_WRITE, arr.size () * sizeof (arr[0]));
-    cl::copy (cmd_queue, arr.data (), arr.data () + 2, buffer);
+    std::cout << "Input:" << std::endl;
+    for (auto& item : arr) {
+        for (int i = 0; i < size_arg; ++i) {
+            std::cout << item.s[i] << " ";
+        }
+        std::cout << std::endl;
+    }
+    std::cout << std::endl;
 
-    cl::NDRange global (2);
-    cl::NDRange local (2);
+    cl::Buffer buffer (context, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
+                       arr.size () * sizeof (arr[0]), arr.data ());
+
+    cl::NDRange global (arr.size ());
+    cl::NDRange local (arr.size ());
     cl::EnqueueArgs args {cmd_queue, global, local};
 
-    cl::KernelFunctor <cl::Buffer> kernelFucntor (program, "access_in_local_memory");
+    cl::KernelFunctor <cl::Buffer> kernelFucntor (program, "sort_int16");
     kernelFucntor (args, buffer);
 
     cl::copy (cmd_queue, buffer, arr.data (), arr.data () + arr.size ());
 
-    std::cout << "result: " << arr << std::endl;
+    std::cout << "result:" << std::endl;
+    for (auto& item : arr) {
+        for (int i = 0; i < size_arg; ++i) {
+            std::cout << item.s[i] << " ";
+        }
+        std::cout << std::endl;
+    }
+
+    for (auto& item : arr) {
+        std::vector <int> tmp;
+        for (int i = 0; i < size_arg; ++i) {
+            tmp.push_back (item.s[i]);
+        }
+
+        auto copy_tmp = tmp;
+        std::sort (tmp.begin (), tmp.end ());
+        if (std::equal (tmp.begin (), tmp.end (),
+                        copy_tmp.begin (), copy_tmp.end ()) == false) {
+            std::cout << "False!" << std::endl;
+        }
+    }
 }
 
 void
