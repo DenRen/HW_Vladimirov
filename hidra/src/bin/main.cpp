@@ -35,7 +35,7 @@ main (int argc, char* argv[]) {
     cl::Context context (device);
     cl::CommandQueue cmd_queue (context);
 
-    const std::string source_name = "kernels/sorter_v2.cl";
+    const std::string source_name = "kernels/sorter_v5.cl";
     using stream = std::istreambuf_iterator <std::string::traits_type::char_type>;
 
     std::ifstream source_file (source_name);
@@ -62,54 +62,66 @@ main (int argc, char* argv[]) {
     std::random_device rd;
     std::mt19937 mersenne(rd());
 
-    const int size_arg = 16;
-    std::vector <cl_int16> arr (4);
+    const bool print = false;
+    const int size_arg = 8;
+    std::vector <cl_int8> arr (1 << 2);
     for (auto& item : arr) {
         for (int i = 0; i < size_arg; ++i) {
             item.s[i] = mersenne ();
         }
     }
 
-    std::cout << "Input:" << std::endl;
-    for (auto& item : arr) {
-        for (int i = 0; i < size_arg; ++i) {
-            std::cout << item.s[i] << " ";
+    if (print) {
+        std::cout << "Input:" << std::endl;
+        for (auto& item : arr) {
+            for (int i = 0; i < size_arg; ++i) {
+                std::cout << item.s[i] << " ";
+            }
+            std::cout << std::endl;
         }
         std::cout << std::endl;
     }
-    std::cout << std::endl;
 
     cl::Buffer buffer (context, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
                        arr.size () * sizeof (arr[0]), arr.data ());
 
-    cl::NDRange global (arr.size ());
-    cl::NDRange local (arr.size ());
+    cl::NDRange global (arr.size () / 2);
+    cl::NDRange local (arr.size () / 2);
     cl::EnqueueArgs args {cmd_queue, global, local};
 
-    cl::KernelFunctor <cl::Buffer> kernelFucntor (program, "sort_int16");
-    kernelFucntor (args, buffer);
+    cl::KernelFunctor <cl::Buffer, cl::LocalSpaceArg> kernelFucntor (program, "vector_sort");
+    cl::LocalSpaceArg local_buf {
+        .size_ = sizeof (arr[0]) * arr.size ()
+    };
+    kernelFucntor (args, buffer, local_buf);
 
     cl::copy (cmd_queue, buffer, arr.data (), arr.data () + arr.size ());
 
-    std::cout << "result:" << std::endl;
-    for (auto& item : arr) {
-        for (int i = 0; i < size_arg; ++i) {
-            std::cout << item.s[i] << " ";
+    if (print) {
+        std::cout << "result:" << std::endl;
+        for (auto& item : arr) {
+            for (int i = 0; i < size_arg; ++i) {
+                std::cout << item.s[i] << " ";
+            }
+            std::cout << std::endl;
         }
-        std::cout << std::endl;
     }
 
-    for (auto& item : arr) {
-        std::vector <int> tmp;
+    std::vector <int> tmp;
+    tmp.reserve (size_arg * arr.size ());
+    for (const auto& item : arr) {
         for (int i = 0; i < size_arg; ++i) {
             tmp.push_back (item.s[i]);
         }
+    }
 
-        auto copy_tmp = tmp;
-        std::sort (tmp.begin (), tmp.end ());
-        if (std::equal (tmp.begin (), tmp.end (),
-                        copy_tmp.begin (), copy_tmp.end ()) == false) {
-            std::cout << "False!" << std::endl;
+    std::sort (tmp.begin (), tmp.end ());
+
+    for (int i = 0; i < arr.size (); ++i) {
+        for (int j = 0; j < size_arg; ++j) {
+            if (arr[i].s[j] != tmp[size_arg * i + j]) {
+                std::cout << "False!" << std::endl;
+            }
         }
     }
 }

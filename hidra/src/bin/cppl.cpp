@@ -311,7 +311,7 @@ Sorter::Sorter (cl::Device device) :
     device_ (device),
     context_ (device_),
     cmd_queue_ (context_),
-    program_ (context_, readSource ("kernels/sorter.cl"))
+    program_ (context_, readSource ("kernels/sorter_v5.cl"))
 {
     try {
         program_.build ();

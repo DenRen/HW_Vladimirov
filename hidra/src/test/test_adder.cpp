@@ -9,7 +9,7 @@
 
 using std::endl;
 
-#define TEST_ALL
+// #define TEST_ALL
 
 template <typename T>
 void test_vector_add_in_arg (const size_t size = 1280000) {

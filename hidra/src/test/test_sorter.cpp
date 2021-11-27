@@ -63,6 +63,7 @@ std::ostream& operator << (std::ostream& os, const std::vector <T>& vec) {
 }
 
 TEST (TEST_SORTER, TEST_HALF_FILTER) {
+    return;
     hidra::DeviceProvider device_provider;
     cl::Device device = device_provider.getDefaultDevice ();
     hidra::Sorter sorter (device);
@@ -109,6 +110,7 @@ void unifying_network (std::vector <T>& vec) {
 }
 
 TEST (TEST_SORTER, TEST_UNIFUING_NETWORK) {
+    return;
     hidra::DeviceProvider device_provider;
     cl::Device device = device_provider.getDefaultDevice ();
     hidra::Sorter sorter (device);
@@ -147,14 +149,14 @@ TEST (TEST_SORTER, TEST_VECTOR_SORT) {
     std::random_device rd;
     std::mt19937 mersenne(rd());
 
-    const size_t max_size_arr = 1 << 11; // Max 1 << 11
+    const size_t max_size_arr = 1 << 1; // Max 1 << 11
     const size_t repeat = 100;
 
-    for (size_t i = 4; i <= max_size_arr; i *= 2) {
-        std::vector <int> data (i);
+    for (size_t i = 1; i <= max_size_arr; i *= 2) {
+        std::vector <int> data (16 * i);
         for (size_t j = 0; j < repeat; ++j) {
             // Fill data
-            for (size_t k = 0; k < i; ++k) {
+            for (size_t k = 0; k < data.size (); ++k) {
                 data[k] = mersenne ();
             }
 

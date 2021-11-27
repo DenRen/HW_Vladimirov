@@ -120,32 +120,39 @@ public:
     }
 
     template <typename T>
-    void 
+    void
     vect_sort (T* data, size_t size) {
         const size_t buffer_size = size * sizeof (T);
-
         cl::Buffer buffer (context_, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR ,
                            buffer_size, data);
-        const std::string name_kernel = "vector_sort";
 
-        try {
-            cl::Kernel kernel (program_, name_kernel.c_str ());
-            cl::KernelFunctor <cl::Buffer> sort (kernel);
+        if (size % 16 == 0) {
+            const std::string name_kernel = "vector_sort";
 
-            cl::NDRange global (size / 2);
-            cl::NDRange local (std::max (size / 2, 1ul));
-            cl::EnqueueArgs enc_args {cmd_queue_, global, local};
+            try {
+                cl::Buffer buffer (context_, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
+                                   buffer_size, data);
 
-            sort (enc_args, buffer);
-        } catch (cl::Error& exc) {
-            std::cerr << "Failed to create kernel from \"" << name_kernel
-                      << "\"" << std::endl << std::flush;
+                cl::NDRange global (size / 16);
+                cl::NDRange local (size / 16);
+                cl::EnqueueArgs args {cmd_queue_, global, local};
 
-            throw;
+                cl::KernelFunctor <cl::Buffer, cl::LocalSpaceArg> kernelFucntor (program_, "vector_sort");
+                cl::LocalSpaceArg local_buf {
+                    .size_ = buffer_size
+                };
+                kernelFucntor (args, buffer, local_buf);
+
+                cl::copy (cmd_queue_, buffer, data, data + size);
+            } catch (cl::Error& exc) {
+                std::cerr << "Failed to create kernel from \"" << name_kernel
+                        << "\"" << std::endl << std::flush;
+
+                throw;
+            }
+        } else {
+            throw std::runtime_error ("");
         }
-
-
-        cl::copy (cmd_queue_, buffer, data, data + size);
     }
 
     // Invoke half sorter
@@ -156,7 +163,7 @@ public:
 
         cl::Buffer buffer (context_, CL_MEM_READ_WRITE, buffer_size);
         cl::copy (cmd_queue_, data, data + size, buffer);
-        
+
         cl::KernelFunctor <cl::Buffer, unsigned long> sort (program_, "_half_filter");
 
         cl::NDRange global (size / 2);
@@ -177,7 +184,7 @@ public:
 
         cl::Buffer buffer (context_, CL_MEM_READ_WRITE, buffer_size);
         cl::copy (cmd_queue_, data, data + size, buffer);
-        
+
         cl::KernelFunctor <cl::Buffer, unsigned long> sort (program_, "_unifying_network");
 
         cl::NDRange global (size / 2);
