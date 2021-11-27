@@ -149,10 +149,10 @@ TEST (TEST_SORTER, TEST_VECTOR_SORT) {
     std::random_device rd;
     std::mt19937 mersenne(rd());
 
-    const size_t max_size_arr = 1 << 1; // Max 1 << 11
+    const size_t max_size_arr = 1 << 9; // Max 1 << 11
     const size_t repeat = 100;
 
-    for (size_t i = 1; i <= max_size_arr; i *= 2) {
+    for (size_t i = max_size_arr; i <= max_size_arr; i *= 2) {
         std::vector <int> data (16 * i);
         for (size_t j = 0; j < repeat; ++j) {
             // Fill data
@@ -165,9 +165,9 @@ TEST (TEST_SORTER, TEST_VECTOR_SORT) {
 
             sorter.vect_sort (data.data (), data.size ());
 
-            ASSERT_TRUE (data == ref_data) <<
+            ASSERT_TRUE (data == ref_data)/* <<
                 "ref: " << ref_data << endl << endl <<
-                "res: " << data << endl << endl;
+                "res: " << data << endl << endl*/;
         }
     }
 }

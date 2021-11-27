@@ -311,7 +311,8 @@ Sorter::Sorter (cl::Device device) :
     device_ (device),
     context_ (device_),
     cmd_queue_ (context_),
-    program_ (context_, readSource ("kernels/sorter_v5.cl"))
+    program_ (context_, readSource ("kernels/sorter_v5.cl")),
+    max_group_size_ (device.getInfo <CL_DEVICE_MAX_WORK_GROUP_SIZE> ())
 {
     try {
         program_.build ();
@@ -329,6 +330,50 @@ Sorter::Sorter (cl::Device device) :
 
         throw;
     }
+}
+
+template <>
+void
+Sorter::vect_sort <int> (int* data, size_t size) {
+    const size_t buffer_size = size * sizeof (int);
+    cl::Buffer buffer (context_, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR ,
+                       buffer_size, data);
+
+    std::string name_kernel;
+    uint32_t size_cell = 0;
+    /*if (size % 16 == 0) {
+        name_kernel = "vector_sort_i8";
+        size_cell = 16;
+    } else */if (size % 8 == 0) {
+        name_kernel = "vector_sort_i4";
+        size_cell = 8;
+    } else {
+        throw std::runtime_error ("");
+    }
+
+    const uint32_t size_item_data = size_cell * sizeof (int);
+    const uint32_t number_work_items = buffer_size / size_item_data;
+    const uint32_t number_work_group = number_work_items / max_group_size_;
+
+    cl::KernelFunctor <cl::Buffer, cl::LocalSpaceArg> kernelFucntor (program_, name_kernel.c_str ());
+
+    try {
+        cl::NDRange global (number_work_group * max_group_size_);
+        cl::NDRange local (max_group_size_);
+        cl::EnqueueArgs args {cmd_queue_, global, local};
+
+        cl::LocalSpaceArg local_buf {
+            .size_ = max_group_size_ * size_item_data // Fuck // todo
+        };
+        kernelFucntor (args, buffer, local_buf);
+        cl::copy (cmd_queue_, buffer, data, data + size);
+    } catch (cl::Error& exc) {
+        std::cerr << "Failed to create kernel from \"" << name_kernel
+                  << "\"" << std::endl << std::flush;
+
+        throw;
+    }
+
 }
 
 } // namespace hidra

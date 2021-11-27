@@ -110,6 +110,8 @@ class Sorter {
 
     cl::Program program_;
 
+    const uint32_t max_group_size_;
+
 public:
     Sorter (cl::Device device);
 
@@ -121,39 +123,7 @@ public:
 
     template <typename T>
     void
-    vect_sort (T* data, size_t size) {
-        const size_t buffer_size = size * sizeof (T);
-        cl::Buffer buffer (context_, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR ,
-                           buffer_size, data);
-
-        if (size % 16 == 0) {
-            const std::string name_kernel = "vector_sort";
-
-            try {
-                cl::Buffer buffer (context_, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
-                                   buffer_size, data);
-
-                cl::NDRange global (size / 16);
-                cl::NDRange local (size / 16);
-                cl::EnqueueArgs args {cmd_queue_, global, local};
-
-                cl::KernelFunctor <cl::Buffer, cl::LocalSpaceArg> kernelFucntor (program_, "vector_sort");
-                cl::LocalSpaceArg local_buf {
-                    .size_ = buffer_size
-                };
-                kernelFucntor (args, buffer, local_buf);
-
-                cl::copy (cmd_queue_, buffer, data, data + size);
-            } catch (cl::Error& exc) {
-                std::cerr << "Failed to create kernel from \"" << name_kernel
-                        << "\"" << std::endl << std::flush;
-
-                throw;
-            }
-        } else {
-            throw std::runtime_error ("");
-        }
-    }
+    vect_sort (T* data, size_t size);
 
     // Invoke half sorter
     template <typename T>

@@ -91,6 +91,15 @@ reverse_swap_if_less_i8 (int8* ptr_a, int8* ptr_b) {
     *ptr_b = select (b, a.s76543210, cmp.hi);
 }
 
+void
+reverse_swap_if_less_i4 (int4* ptr_a, int4* ptr_b) {
+    int4 a = *ptr_a, b = *ptr_b;
+
+    int8 cmp = (a.s0123 > b.s3210).s01233210;
+    *ptr_a = select (a, b.s3210, cmp.lo);
+    *ptr_b = select (b, a.s3210, cmp.hi);
+}
+
 /////////////////////////////////////////////////////////////
 // Bitonic sort:                                           //
 // ------------                                            //
@@ -101,7 +110,7 @@ reverse_swap_if_less_i8 (int8* ptr_a, int8* ptr_b) {
 // size % 2 == 0
 // pos = [0:size)
 void
-half_filter (int pos, int8* data, uint size) {
+half_filter_i8 (int pos, int8* data, uint size) {
     while (size) {
         int16 tmp = (int16) (data[pos], data[pos + size]);
         _sort_int16 (tmp, &tmp);
@@ -120,22 +129,56 @@ half_filter (int pos, int8* data, uint size) {
     }
 }
 
+void
+half_filter_i4 (int pos, int4* data, uint size) {
+    while (size) {
+        int8 tmp = (int8) (data[pos], data[pos + size]);
+        _sort_int8 (tmp, &tmp);
+        data[pos] = tmp.lo;
+        data[pos + size] = tmp.hi;
+
+        barrier (CLK_LOCAL_MEM_FENCE);
+
+        uint half_size = size >> 1;
+        if (pos >= half_size) {
+            pos -= half_size;
+            data += size;
+        }
+
+        size = half_size;
+    }
+}
+
 // size param is half data size
 void
-unifying_network (uint pos, int8* data, uint size) {
+unifying_network_i8 (uint pos, int8* data, uint size) {
     reverse_swap_if_less_i8 (&data[pos], &data[2 * size - pos - 1]);
     barrier (CLK_LOCAL_MEM_FENCE);
 
     uint half_size = size >> 1;
     if (pos < half_size) {
-        half_filter (pos, data, half_size);
+        half_filter_i8 (pos, data, half_size);
     } else {
-        half_filter (pos - half_size, data + size, half_size);
+        half_filter_i8 (pos - half_size, data + size, half_size);
+    }
+}
+
+// size param is half data size
+void
+unifying_network_i4 (uint pos, int4* data, uint size) {
+    reverse_swap_if_less_i4 (&data[pos], &data[2 * size - pos - 1]);
+    barrier (CLK_LOCAL_MEM_FENCE);
+
+    uint half_size = size >> 1;
+    if (pos < half_size) {
+        half_filter_i4 (pos, data, half_size);
+    } else {
+        half_filter_i4 (pos - half_size, data + size, half_size);
     }
 }
 
 __kernel void
-vector_sort (__global __read_write int8* buf,
+vector_sort_i8 (__global __read_write int8* buf,
              __local int8* l_buf) {
     uint pos = get_global_id (0);
     uint size = get_global_size (0); // Half data size
@@ -149,9 +192,31 @@ vector_sort (__global __read_write int8* buf,
         uint new_pos = global_pos % (2 * i);
         __local int8* new_data = l_buf + global_pos - global_pos % i;
 
-        unifying_network (new_pos, new_data, i);
+        unifying_network_i8 (new_pos, new_data, i);
         barrier (CLK_LOCAL_MEM_FENCE);
     }
 
     *(int16*)&buf[2 * pos] = *(int16*) &l_buf[2 * pos];
+}
+
+__kernel void
+vector_sort_i4 (__global __read_write int4* g_buf,
+                __local int4* l_buf) {
+    uint pos = get_global_id (0);
+    uint size = get_local_size (0); // Half data size
+
+    _sort_int8 (*(int8*)&g_buf[2 * pos], (int8*) &l_buf[2 * pos]);
+
+    uint data_size = 2 * size;
+
+    for (uint i = 2; i <= size; i <<= 1) {
+        uint global_pos = pos % i + (pos / i) * (2 * i);
+        uint new_pos = global_pos % (2 * i);
+        __local int4* new_data = l_buf + global_pos - global_pos % i;
+
+        unifying_network_i4 (new_pos, new_data, i);
+        barrier (CLK_LOCAL_MEM_FENCE);
+    }
+
+    *(int8*)&g_buf[2 * pos] = *(int8*) &l_buf[2 * pos];
 }
