@@ -35,9 +35,9 @@ main (int argc, char* argv[]) {
     // cl::Context context (device);
     // cl::CommandQueue cmd_queue (context);
 
-    std::cout << device_provider.dumpAll ();
-    return 0;
-    
+    // std::cout << device_provider.dumpAll ();
+    // return 0;
+
     // const std::string source_name = "kernels/sorter_v5.cl";
     // using stream = std::istreambuf_iterator <std::string::traits_type::char_type>;
 

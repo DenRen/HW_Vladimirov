@@ -38,6 +38,7 @@ include_directories (${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 set (TEST_DIR "src/test")
 add_executable (run_tests ${TEST_DIR}/test_adder.cpp
                           ${TEST_DIR}/test_sorter.cpp
+                          ${TEST_DIR}/test_kernel_func.cpp
                           ${BIN_DIR}/cppl.cpp
                           ${BIN_DIR}/mycllib.cpp)
 #Link test executable against gtest and gtest_main

@@ -165,5 +165,8 @@ public:
 
         cl::copy (cmd_queue_, buffer, data, data + size);
     }
+
+private:
+    void _sort_i1024 (int* data);
 };
 }

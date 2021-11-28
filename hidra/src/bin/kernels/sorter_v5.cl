@@ -40,7 +40,7 @@ __kernel void
 sort_int8 (__global int8* buf) {
     unsigned pos = get_global_id (0);
     int8 arr = buf[pos];
-    
+
     _sort_int8 (arr, &buf[pos]);
 }
 
@@ -179,7 +179,7 @@ unifying_network_i4 (uint pos, int4* data, uint size) {
 
 __kernel void
 vector_sort_i8 (__global __read_write int8* buf,
-             __local int8* l_buf) {
+                __local int8* l_buf) {
     uint pos = get_global_id (0);
     uint size = get_global_size (0); // Half data size
 
@@ -199,6 +199,8 @@ vector_sort_i8 (__global __read_write int8* buf,
     *(int16*)&buf[2 * pos] = *(int16*) &l_buf[2 * pos];
 }
 
+
+// 4 * 2 * g_size
 __kernel void
 vector_sort_i4 (__global __read_write int4* g_buf,
                 __local int4* l_buf) {

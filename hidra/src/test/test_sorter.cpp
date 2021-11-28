@@ -142,18 +142,19 @@ TEST (TEST_SORTER, TEST_UNIFUING_NETWORK) {
 }
 
 TEST (TEST_SORTER, TEST_VECTOR_SORT) {
+    return;
     hidra::DeviceProvider device_provider;
     cl::Device device = device_provider.getDefaultDevice ();
     hidra::Sorter sorter (device);
 
     std::random_device rd;
-    std::mt19937 mersenne(rd());
+    std::mt19937 mersenne (rd ());
 
-    const size_t max_size_arr = 1 << 9; // Max 1 << 11
+    const size_t max_size_arr = 1 << 10; // Max 1 << 11
     const size_t repeat = 100;
 
     for (size_t i = max_size_arr; i <= max_size_arr; i *= 2) {
-        std::vector <int> data (16 * i);
+        std::vector <int> data (8 * i);
         for (size_t j = 0; j < repeat; ++j) {
             // Fill data
             for (size_t k = 0; k < data.size (); ++k) {
@@ -169,5 +170,35 @@ TEST (TEST_SORTER, TEST_VECTOR_SORT) {
                 "ref: " << ref_data << endl << endl <<
                 "res: " << data << endl << endl*/;
         }
+    }
+}
+
+TEST (TEST_SORTER, TEST_VECTOR_SORT_int1024) {
+    return;
+    hidra::DeviceProvider device_provider;
+    cl::Device device = device_provider.getDefaultDevice ();
+    hidra::Sorter sorter (device);
+
+    std::random_device rd;
+    std::mt19937 mersenne (rd ());
+
+    const size_t size_arr = 2*8192;
+    const size_t repeat = 1;
+
+    std::vector <int> data (size_arr);
+    for (size_t j = 0; j < repeat; ++j) {
+        // Fill data
+        for (size_t k = 0; k < data.size (); ++k) {
+            data[k] = mersenne () % 30;
+        }
+
+        std::vector <int> ref_data = data;
+        std::sort (ref_data.begin (), ref_data.end ());
+
+        sorter.vect_sort (data.data (), data.size ());
+
+        ASSERT_TRUE (data == ref_data) <<
+            "ref: " << ref_data << endl << endl <<
+            "res: " << data << endl << endl;
     }
 }

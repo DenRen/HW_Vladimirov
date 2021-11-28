@@ -332,48 +332,81 @@ Sorter::Sorter (cl::Device device) :
     }
 }
 
-template <>
-void
-Sorter::vect_sort <int> (int* data, size_t size) {
-    const size_t buffer_size = size * sizeof (int);
-    cl::Buffer buffer (context_, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR ,
-                       buffer_size, data);
+void Sorter::_sort_i1024 (int* data) {
+        const size_t size = 1024;
+        const size_t size_cell = 8;
 
-    std::string name_kernel;
-    uint32_t size_cell = 0;
-    /*if (size % 16 == 0) {
-        name_kernel = "vector_sort_i8";
-        size_cell = 16;
-    } else */if (size % 8 == 0) {
-        name_kernel = "vector_sort_i4";
-        size_cell = 8;
-    } else {
-        throw std::runtime_error ("");
-    }
+        const size_t buffer_size = size * sizeof (int);
+        cl::Buffer buffer (context_, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR ,
+                           buffer_size, data);
 
-    const uint32_t size_item_data = size_cell * sizeof (int);
-    const uint32_t number_work_items = buffer_size / size_item_data;
-    const uint32_t number_work_group = number_work_items / max_group_size_;
+        const uint32_t size_item_data = size_cell * sizeof (int);
+        const uint32_t number_work_items = buffer_size / size_item_data;
+        const uint32_t number_work_group = number_work_items / max_group_size_;
 
-    cl::KernelFunctor <cl::Buffer, cl::LocalSpaceArg> kernelFucntor (program_, name_kernel.c_str ());
+        cl::KernelFunctor <cl::Buffer, cl::LocalSpaceArg>
+            kernelFucntor (program_, "vector_sort_i4");
 
-    try {
-        cl::NDRange global (number_work_group * max_group_size_);
+        cl::NDRange global (max_group_size_);
         cl::NDRange local (max_group_size_);
         cl::EnqueueArgs args {cmd_queue_, global, local};
 
         cl::LocalSpaceArg local_buf {
-            .size_ = max_group_size_ * size_item_data // Fuck // todo
+            .size_ = max_group_size_ * size_item_data
         };
         kernelFucntor (args, buffer, local_buf);
         cl::copy (cmd_queue_, buffer, data, data + size);
-    } catch (cl::Error& exc) {
-        std::cerr << "Failed to create kernel from \"" << name_kernel
-                  << "\"" << std::endl << std::flush;
-
-        throw;
     }
 
+static int
+round_down_pow2 (int n) {
+    int i = 0;
+    for (; n != 0; ++i) {
+        n >>= 1;
+    }
+
+    return 1 << (i - 1);
+}
+
+template <>
+void
+Sorter::vect_sort <int> (int* data, size_t size) {
+    int _n = device_.getInfo <CL_DEVICE_LOCAL_MEM_SIZE> () /
+             (2 * sizeof (int) * max_group_size_);
+    _n = round_down_pow2 (_n);
+
+    std::string name_func = std::string ("vector_sort_i") + std::to_string (_n);
+    size_t size_block = 2 * _n * max_group_size_;
+
+    if (size % size_block != 0) {
+        std::cerr << "size: " << size << ", size_block: " << size_block << std::endl;
+        throw std::runtime_error ("size %% size_block != 0");
+    }
+
+    cl::KernelFunctor <cl::Buffer, cl::LocalSpaceArg>
+        kernelFucntor (program_, name_func);
+    
+    cl::NDRange global (max_group_size_);
+    cl::NDRange local (max_group_size_);
+    cl::EnqueueArgs args {cmd_queue_, global, local};
+
+    cl::LocalSpaceArg local_buf {
+        .size_ = size_block * sizeof (int)
+    };
+
+    const int num_blocks = size / size_block;
+
+    int* cur_data = data;
+    for (int group_id = 0; group_id < num_blocks; ++group_id) {
+        const size_t buffer_size = size_block * sizeof (int);
+        cl::Buffer buffer (context_, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR ,
+                           buffer_size, cur_data);
+
+        kernelFucntor (args, buffer, local_buf);
+        cl::copy (cmd_queue_, buffer, cur_data, cur_data + size_block);
+
+        cur_data += size_block;
+    }
 }
 
 } // namespace hidra
