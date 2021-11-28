@@ -199,7 +199,6 @@ vector_sort_i8 (__global __read_write int8* buf,
     *(int16*)&buf[2 * pos] = *(int16*) &l_buf[2 * pos];
 }
 
-
 // 4 * 2 * g_size
 __kernel void
 vector_sort_i4 (__global __read_write int4* g_buf,

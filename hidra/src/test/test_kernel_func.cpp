@@ -53,7 +53,7 @@ std::vector <T>
 getRandFillVector (std::size_t size, Rand& rand) {
     std::vector <T> vec (size);
     for (auto& item : vec) {
-        item = rand ();
+        item = rand () % 50;
     }
 
     return vec; // RVO
@@ -71,41 +71,44 @@ getBuffer (ocl_ctx_t& ctx, std::vector <T>& vec) {
 
 template <typename T>
 void
-checkEqual (std::vector <T>& source_vec, const std::vector <T>& sorted_vec) {
-    ASSERT_TRUE (source_vec == sorted_vec)
-        << "vec: " << sorted_vec << endl
-        << "ref: " << source_vec << endl;
-}
+checkEqual (std::vector <T>& source_vec, const std::vector <T>& sorted_vec, bool dir) {
+    auto copy_src_vec = source_vec;
 
-static void
-test_sort_int4 (ocl_ctx_t& ctx, std::string name_kernel_func,
-                std::mt19937& mersenne, cl_uint dir) {
-    cl::KernelFunctor <cl::Buffer, cl_int> sort_int4 (ctx.program, name_kernel_func);
-
-    auto vec = getRandFillVector <int> (4, mersenne);
-    cl::Buffer buffer = getBuffer (ctx, vec);
-
-    auto save_vec = vec;
     if (dir == false) {
-        std::sort (save_vec.begin (), save_vec.end ());
+        std::sort (source_vec.begin (), source_vec.end ());
     } else {
-        std::sort (save_vec.begin (), save_vec.end (),
+        std::sort (source_vec.begin (), source_vec.end (),
             [] (int& a, int& b) {
                 return a > b;
             }
         );
     }
+
+    ASSERT_TRUE (sorted_vec == source_vec)
+        << "src: " << copy_src_vec << endl
+        << "vec: " << sorted_vec   << endl
+        << "ref: " << source_vec   << endl
+        << "dir: " << dir          << endl;
+}
+
+static void
+test_sort_intn (int n, ocl_ctx_t& ctx, std::string name_kernel_func,
+                std::mt19937& mersenne, cl_uint dir) {
+    cl::KernelFunctor <cl::Buffer, cl_int> sort_intn (ctx.program, name_kernel_func);
+
+    auto vec = getRandFillVector <int> (n, mersenne);
+    cl::Buffer buffer = getBuffer (ctx, vec);
+
+    auto save_vec = vec;
+    
     cl::NDRange global (1);
     cl::NDRange local (1);
     cl::EnqueueArgs args {ctx.cmd_queue, global, local};
-    sort_int4 (args, buffer, dir);
+    sort_intn (args, buffer, dir);
 
     cl::copy (ctx.cmd_queue, buffer, vec.data (), vec.data () + vec.size ());
 
-    ASSERT_TRUE (save_vec == vec)
-        << "vec: " << vec << endl
-        << "ref: " << save_vec << endl
-        << "dir: " << dir << endl;
+    checkEqual (save_vec, vec, dir);
 }
 
 TEST (TEST_KERNEL, sort_int4) {
@@ -113,8 +116,55 @@ TEST (TEST_KERNEL, sort_int4) {
     std::random_device rd;
     std::mt19937 mersenne (rd ());
 
-    const std::size_t repeat = 1 < 10;
+    const std::size_t repeat = 1 << 8;
     for (std::size_t i = 0; i < repeat; ++i) {
-        test_sort_int4 (ctx, "test_sort_int4", mersenne, i % 2);
+        test_sort_intn (4, ctx, "test_sort_int4", mersenne, i % 2);
+    }
+}
+
+TEST (TEST_KERNEL, sort_int8) {
+    ocl_ctx_t ctx;
+    std::random_device rd;
+    std::mt19937 mersenne (rd ());
+
+    const std::size_t repeat = 1 << 8;
+    for (std::size_t i = 0; i < repeat; ++i) {
+        test_sort_intn (8, ctx, "test_sort_int8", mersenne, i % 2);
+    }
+}
+
+TEST (TEST_KERNEL, vector_sort_i4) {
+    ocl_ctx_t ctx;
+    std::random_device rd;
+    std::mt19937 mersenne (rd ());
+    mersenne.seed (3);
+
+    const std::string name_kernel_func = "vector_sort_i4";
+    const std::size_t repeat = 1;
+    const std::size_t size = 1 << 10;
+    const cl_int dir = 0;
+
+    for (std::size_t i = 0; i < repeat; ++i) {
+        cl::KernelFunctor <cl::Buffer, cl::LocalSpaceArg, cl_int>
+            sort_intn (ctx.program, name_kernel_func);
+
+        auto vec = getRandFillVector <int> (size, mersenne);
+        cl::Buffer buffer = getBuffer (ctx, vec);
+
+        auto save_vec = vec;
+        
+        const std::size_t num_item_data_block = size / (2 * sizeof (vec[0]));
+        
+        cl::NDRange global (num_item_data_block);
+        cl::NDRange local (global);
+        cl::EnqueueArgs args {ctx.cmd_queue, global, local};
+        cl::LocalSpaceArg local_buffer { size * sizeof (vec[0]) };
+
+        sort_intn (args, buffer, local_buffer, dir);
+
+        cl::copy (ctx.cmd_queue, buffer, vec.data (), vec.data () + vec.size ());
+        // cout  << "res: " << vec << endl;
+
+        checkEqual (save_vec, vec, dir);
     }
 }
