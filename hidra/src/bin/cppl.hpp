@@ -109,8 +109,9 @@ class Sorter {
     cl::CommandQueue cmd_queue_;
 
     cl::Program program_;
+    cl::KernelFunctor <cl::Buffer, cl::LocalSpaceArg, cl_int> sort_i16_;
 
-    const uint32_t max_group_size_;
+    uint32_t max_group_size_;
 
 public:
     Sorter (cl::Device device);

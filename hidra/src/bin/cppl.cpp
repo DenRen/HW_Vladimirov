@@ -5,6 +5,7 @@
 #include <iostream>
 #include <iomanip>
 #include <sstream>
+#include <cmath>
 
 #include <boost/type_index.hpp>
 
@@ -306,58 +307,6 @@ std::string_view
 Adder::getFuncName_VectAdd <unsigned long> () {
     return "vector_add_u64";
 }
-
-Sorter::Sorter (cl::Device device) :
-    device_ (device),
-    context_ (device_),
-    cmd_queue_ (context_),
-    program_ (context_, readSource ("kernels/sorter_v5.cl")),
-    max_group_size_ (device.getInfo <CL_DEVICE_MAX_WORK_GROUP_SIZE> ())
-{
-    try {
-        program_.build ();
-    } catch (cl::Error& exc) {
-        cl_int buildError = CL_SUCCESS;
-
-        auto buildInfo = program_.getBuildInfo <CL_PROGRAM_BUILD_LOG> (&buildError);
-
-        for (const auto& pair : buildInfo) {
-            auto device = pair.first.getInfo <CL_DEVICE_NAME> ();
-            auto build_error_msg = pair.second;
-            std::cerr << "Device: " << device << std::endl;
-            std::cerr << "Build msg: " << build_error_msg << std::endl;
-        }
-
-        throw;
-    }
-}
-
-void Sorter::_sort_i1024 (int* data) {
-        const size_t size = 1024;
-        const size_t size_cell = 8;
-
-        const size_t buffer_size = size * sizeof (int);
-        cl::Buffer buffer (context_, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR ,
-                           buffer_size, data);
-
-        const uint32_t size_item_data = size_cell * sizeof (int);
-        const uint32_t number_work_items = buffer_size / size_item_data;
-        const uint32_t number_work_group = number_work_items / max_group_size_;
-
-        cl::KernelFunctor <cl::Buffer, cl::LocalSpaceArg>
-            kernelFucntor (program_, "vector_sort_i4");
-
-        cl::NDRange global (max_group_size_);
-        cl::NDRange local (max_group_size_);
-        cl::EnqueueArgs args {cmd_queue_, global, local};
-
-        cl::LocalSpaceArg local_buf {
-            .size_ = max_group_size_ * size_item_data
-        };
-        kernelFucntor (args, buffer, local_buf);
-        cl::copy (cmd_queue_, buffer, data, data + size);
-    }
-
 static int
 round_down_pow2 (int n) {
     int i = 0;
@@ -368,44 +317,97 @@ round_down_pow2 (int n) {
     return 1 << (i - 1);
 }
 
+static cl::Program
+buildProgram (cl::Context context, std::string name_kernel_func) {
+    cl::Program program (context, readSource (name_kernel_func));
+    try {
+        program.build ();
+    } catch (cl::Error& exc) {
+        cl_int buildError = CL_SUCCESS;
+
+        auto buildInfo = program.getBuildInfo <CL_PROGRAM_BUILD_LOG> (&buildError);
+
+        for (const auto& pair : buildInfo) {
+            auto device = pair.first.getInfo <CL_DEVICE_NAME> ();
+            auto build_error_msg = pair.second;
+            std::cerr << "Device: " << device << std::endl;
+            std::cerr << "Build msg: " << build_error_msg << std::endl;
+        }
+
+        throw;
+    }
+
+    return program;
+}
+
+Sorter::Sorter (cl::Device device) :
+    device_ (device),
+    context_ (device_),
+    cmd_queue_ (context_),
+    program_ (buildProgram (context_, "kernels/sorter_v6.cl")),
+    sort_i16_ (program_, "vector_sort_i4"),
+    max_group_size_ (device.getInfo <CL_DEVICE_MAX_WORK_GROUP_SIZE> ())
+{
+    const std::size_t local_size = device.getInfo <CL_DEVICE_LOCAL_MEM_SIZE> ();
+    const std::size_t max_possible_group_size = local_size / (8 * 2 * sizeof (int));
+    if (max_group_size_ > max_possible_group_size) {
+        max_group_size_ = round_down_pow2 (max_possible_group_size);
+    }
+
+    max_group_size_ = round_down_pow2 (max_group_size_);
+}
+
+bool isEqual (double a, double b) {
+    return std::fabs (a - b) < 1e-6;
+}
+
+
+// size == pow (8, n)
 template <>
 void
 Sorter::vect_sort <int> (int* data, size_t size) {
-    int _n = device_.getInfo <CL_DEVICE_LOCAL_MEM_SIZE> () /
-             (2 * sizeof (int) * max_group_size_);
-    _n = round_down_pow2 (_n);
+    size_t size_block = 2 * sizeof (int) * max_group_size_;
 
-    std::string name_func = std::string ("vector_sort_i") + std::to_string (_n);
-    size_t size_block = 2 * _n * max_group_size_;
+    std::size_t num_int_in_work_item = 8;
 
-    if (size % size_block != 0) {
-        std::cerr << "size: " << size << ", size_block: " << size_block << std::endl;
-        throw std::runtime_error ("size %% size_block != 0");
+    // Prepeare size and add_size
+    std::size_t add_size = 0;
+    if (size < num_int_in_work_item) {
+        add_size = num_int_in_work_item - size;
+    } else {
+        unsigned n = std::log2 (2 * size / num_int_in_work_item);
+        while ((1 << n) < size) {
+            add_size = (1 << ++n);
+        }
+        add_size -= size;
     }
 
-    cl::KernelFunctor <cl::Buffer, cl::LocalSpaceArg>
-        kernelFucntor (program_, name_func);
-    
-    cl::NDRange global (max_group_size_);
-    cl::NDRange local (max_group_size_);
-    cl::EnqueueArgs args {cmd_queue_, global, local};
+    std::size_t full_size = size + add_size;
 
-    cl::LocalSpaceArg local_buf {
-        .size_ = size_block * sizeof (int)
-    };
+    // Number necessary work items
+    std::size_t num_items = full_size / num_int_in_work_item;
 
-    const int num_blocks = size / size_block;
+    if (num_items <= max_group_size_) {
+        cl::NDRange global (num_items);
+        cl::NDRange local (num_items);
+        cl::EnqueueArgs args {cmd_queue_, global, local};
 
-    int* cur_data = data;
-    for (int group_id = 0; group_id < num_blocks; ++group_id) {
-        const size_t buffer_size = size_block * sizeof (int);
-        cl::Buffer buffer (context_, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR ,
-                           buffer_size, cur_data);
+        cl::LocalSpaceArg local_buf {
+            .size_ = sizeof (int) * full_size
+        };
 
-        kernelFucntor (args, buffer, local_buf);
-        cl::copy (cmd_queue_, buffer, cur_data, cur_data + size_block);
+        cl::Buffer buffer (context_, CL_MEM_READ_WRITE, full_size * sizeof (int));
+        cl::copy (cmd_queue_, data, data + size, buffer);
 
-        cur_data += size_block;
+        std::vector <int> poison (add_size, INT32_MAX);
+        if (add_size != 0) {
+            cmd_queue_.enqueueWriteBuffer (buffer, true, sizeof (int) * size,  sizeof (int) * add_size, poison.data ());
+        }
+
+        sort_i16_ (args, buffer, local_buf, 0);
+        cl::copy (cmd_queue_, buffer, data, data + size);
+    } else {
+        throw std::runtime_error ("num_items > max_group_size_");
     }
 }
 

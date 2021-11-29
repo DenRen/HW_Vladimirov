@@ -41,3 +41,48 @@ operator << (std::basic_ostream <CharT, Traits>& stream, const std::vector <T>& 
 
     return stream;
 }
+
+template <typename T, typename Rand>
+std::vector <T>
+getRandFillVector (std::size_t size, Rand& rand) {
+    std::vector <T> vec (size);
+    for (auto& item : vec) {
+        item = rand ();
+    }
+
+    return vec; // RVO
+}
+
+
+template <typename T, typename Rand>
+std::vector <T>
+getRandFillVector (std::size_t size, Rand& rand, T module) {
+    std::vector <T> vec (size);
+    for (auto& item : vec) {
+        item = rand () % module;
+    }
+
+    return vec; // RVO
+}
+
+template <typename T>
+void
+checkEqual (std::vector <T>& source_vec, const std::vector <T>& sorted_vec, bool dir = false) {
+    auto copy_src_vec = source_vec;
+
+    if (dir == false) {
+        std::sort (source_vec.begin (), source_vec.end ());
+    } else {
+        std::sort (source_vec.begin (), source_vec.end (),
+            [] (int& a, int& b) {
+                return a > b;
+            }
+        );
+    }
+
+    ASSERT_TRUE (sorted_vec == source_vec)
+        << "src: " << copy_src_vec << std::endl
+        << "vec: " << sorted_vec   << std::endl
+        << "ref: " << source_vec   << std::endl
+        << "dir: " << dir          << std::endl;
+}

@@ -24,7 +24,7 @@ struct ocl_ctx_t {
     {}
 
     ocl_ctx_t (std::string path_kernel) :
-        device (hidra::DeviceProvider().getDefaultDevice ()),
+        device (hidra::DeviceProvider ().getDefaultDevice ()),
         context (device),
         cmd_queue (context),
         program (context, readSource (path_kernel))
@@ -48,17 +48,6 @@ struct ocl_ctx_t {
     }
 }; // struct ocl_ctx_t
 
-template <typename T, typename Rand>
-std::vector <T>
-getRandFillVector (std::size_t size, Rand& rand) {
-    std::vector <T> vec (size);
-    for (auto& item : vec) {
-        item = rand () % 50;
-    }
-
-    return vec; // RVO
-}
-
 template <typename T>
 cl::Buffer
 getBuffer (ocl_ctx_t& ctx, std::vector <T>& vec) {
@@ -67,28 +56,6 @@ getBuffer (ocl_ctx_t& ctx, std::vector <T>& vec) {
                        CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
                        size_buffer, vec.data ());
     return buffer;
-}
-
-template <typename T>
-void
-checkEqual (std::vector <T>& source_vec, const std::vector <T>& sorted_vec, bool dir) {
-    auto copy_src_vec = source_vec;
-
-    if (dir == false) {
-        std::sort (source_vec.begin (), source_vec.end ());
-    } else {
-        std::sort (source_vec.begin (), source_vec.end (),
-            [] (int& a, int& b) {
-                return a > b;
-            }
-        );
-    }
-
-    ASSERT_TRUE (sorted_vec == source_vec)
-        << "src: " << copy_src_vec << endl
-        << "vec: " << sorted_vec   << endl
-        << "ref: " << source_vec   << endl
-        << "dir: " << dir          << endl;
 }
 
 static void
@@ -137,34 +104,38 @@ TEST (TEST_KERNEL, vector_sort_i4) {
     ocl_ctx_t ctx;
     std::random_device rd;
     std::mt19937 mersenne (rd ());
-    mersenne.seed (3);
+    // mersenne.seed (3);
 
     const std::string name_kernel_func = "vector_sort_i4";
-    const std::size_t repeat = 1;
-    const std::size_t size = 1 << 10;
-    const cl_int dir = 0;
+    const std::size_t repeat = 100;
+    const std::size_t size = 8 * 1 << 10; // Max 8 * 1 << 10
+    const cl_int dir = 1;
+
+    std::vector <std::vector <int>> vecs;
+    vecs.reserve (repeat);
+    for (std::size_t i = 0; i < repeat; ++i) {
+        vecs.push_back (getRandFillVector <int> (size, mersenne));
+    }
+
+    auto save_vecs = vecs;
 
     for (std::size_t i = 0; i < repeat; ++i) {
         cl::KernelFunctor <cl::Buffer, cl::LocalSpaceArg, cl_int>
             sort_intn (ctx.program, name_kernel_func);
 
-        auto vec = getRandFillVector <int> (size, mersenne);
-        cl::Buffer buffer = getBuffer (ctx, vec);
-
-        auto save_vec = vec;
+        cl::Buffer buffer = getBuffer (ctx, vecs[i]);
         
-        const std::size_t num_item_data_block = size / (2 * sizeof (vec[0]));
+        const std::size_t num_item_data_block = size / (2 * sizeof (vecs[0][0]));
         
         cl::NDRange global (num_item_data_block);
         cl::NDRange local (global);
         cl::EnqueueArgs args {ctx.cmd_queue, global, local};
-        cl::LocalSpaceArg local_buffer { size * sizeof (vec[0]) };
+        cl::LocalSpaceArg local_buffer { size * sizeof (vecs[0][0]) };
 
         sort_intn (args, buffer, local_buffer, dir);
 
-        cl::copy (ctx.cmd_queue, buffer, vec.data (), vec.data () + vec.size ());
-        // cout  << "res: " << vec << endl;
+        cl::copy (ctx.cmd_queue, buffer, vecs[i].data (), vecs[i].data () + vecs[i].size ());
 
-        checkEqual (save_vec, vec, dir);
+        checkEqual (save_vecs[i], vecs[i], dir);
     }
 }
