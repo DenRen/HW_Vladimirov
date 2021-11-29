@@ -71,3 +71,36 @@ vector_sort_i4 (__global __read_write int4* g_buf,
 
     *(int8*) &g_buf[2 * pos] = *(int8*) &l_buf[2 * pos];
 }
+
+// dist in int8
+__kernel void
+comparator_vect_i4 (__global __read_write int4* g_buf,
+                    __local int4* l_buf, int init_dir,
+                    uint dist) {
+    uint pos = get_global_id (0);
+    uint max_size = 2 * get_global_size (0);
+
+    // Sort with dir 8 ints and load it in local memory
+    uint location = 2 * (pos + (2 * pos > get_global_size (0)) * dist);
+    _sort_int8 (*(int8*) &g_buf[location], (int8*) &l_buf[2 * pos], (pos % 2) ^ init_dir);
+
+    for (uint size = 4; size <= max_size; size <<= 1) {
+        const int dir = init_dir ^ (2 * pos / size) % 2; // 0
+
+        // stage = 2, 1
+        for (uint stage = size / 2; stage >= 1; stage >>= 1) {
+            barrier (CLK_LOCAL_MEM_FENCE);
+            int4 tmp4;
+
+            uint begin = pos + stage * (pos / stage);
+            int8 arr = (int8) (l_buf[begin], l_buf[begin + stage]);
+            
+            _sort_int8 (arr, &arr, dir);
+
+            l_buf[begin] = arr.lo;
+            l_buf[begin + stage] = arr.hi;
+        }
+    }
+
+    *(int8*) &g_buf[location] = *(int8*) &l_buf[2 * pos];
+}

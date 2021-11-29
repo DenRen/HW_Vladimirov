@@ -345,7 +345,8 @@ Sorter::Sorter (cl::Device device) :
     context_ (device_),
     cmd_queue_ (context_),
     program_ (buildProgram (context_, "kernels/sorter_v6.cl")),
-    sort_i16_ (program_, "vector_sort_i4"),
+    sort_i4_ (program_, "vector_sort_i4"),
+    cmptr_i16_ (program_, "comparator_vect_i4"),
     max_group_size_ (device.getInfo <CL_DEVICE_MAX_WORK_GROUP_SIZE> ())
 {
     const std::size_t local_size = device.getInfo <CL_DEVICE_LOCAL_MEM_SIZE> ();
@@ -360,6 +361,24 @@ Sorter::Sorter (cl::Device device) :
 bool isEqual (double a, double b) {
     return std::fabs (a - b) < 1e-6;
 }
+
+void bitonic_merge (int* data, std::size_t start, std::size_t size, int dir) {
+    const std::size_t max_size = size / 2;
+
+    while (size /= 2) {
+        const std::size_t stage = max_size / size;
+
+        for (std::size_t j = 0; j < stage; ++j) { 
+            for (std::size_t i = 0; i < size; ++i) {
+                const std::size_t begin = start + i + j * 2 * size;
+                comparator (vec[begin], vec[begin + size], dir);
+
+                
+            }
+        }
+    }
+}
+
 
 
 // size == pow (8, n)
@@ -401,13 +420,32 @@ Sorter::vect_sort <int> (int* data, size_t size) {
 
         std::vector <int> poison (add_size, INT32_MAX);
         if (add_size != 0) {
-            cmd_queue_.enqueueWriteBuffer (buffer, true, sizeof (int) * size,  sizeof (int) * add_size, poison.data ());
+            cmd_queue_.enqueueWriteBuffer (buffer, true, sizeof (int) * size,
+                                           sizeof (int) * add_size, poison.data ());
         }
 
-        sort_i16_ (args, buffer, local_buf, 0);
+        sort_i4_ (args, buffer, local_buf, 0);
         cl::copy (cmd_queue_, buffer, data, data + size);
     } else {
-        throw std::runtime_error ("num_items > max_group_size_");
+        cl::NDRange global (max_group_size_);
+        cl::NDRange local (max_group_size_);
+        cl::EnqueueArgs args {cmd_queue_, global, local};
+
+        cl::LocalSpaceArg local_buf {
+            .size_ = 8 * sizeof (int) * max_group_size_
+        };
+
+        cl::Buffer buffer (context_, CL_MEM_READ_WRITE, full_size * sizeof (int));
+        cl::copy (cmd_queue_, data, data + size, buffer);
+
+        std::vector <int> poison (add_size, INT32_MAX);
+        if (add_size != 0) {
+            cmd_queue_.enqueueWriteBuffer (buffer, true, sizeof (int) * size,
+                                           sizeof (int) * add_size, poison.data ());
+        }
+
+        sort_i4_ (args, buffer, local_buf, 0);
+        cl::copy (cmd_queue_, buffer, data, data + size);
     }
 }
 
