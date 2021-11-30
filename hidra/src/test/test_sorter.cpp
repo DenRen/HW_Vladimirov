@@ -19,8 +19,8 @@ TEST (TEST_SORTER, TEST_VECTOR_SORT) {
     std::random_device rd;
     std::mt19937 mersenne (rd ());
 
-    const size_t max_size_arr = 1 << 13; // Max 1 << 11
-    const size_t repeat = 10;
+    const size_t max_size_arr = 8 * 1 << 14; // Max 1 << 11
+    const size_t repeat = 100;
 
     for (std::size_t i = 0; i < repeat; ++i) {
         auto vec = getRandFillVector <int> (max_size_arr, mersenne, 50);

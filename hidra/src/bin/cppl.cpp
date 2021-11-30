@@ -346,11 +346,11 @@ Sorter::Sorter (cl::Device device) :
     cmd_queue_ (context_),
     program_ (buildProgram (context_, "kernels/sorter_v6.cl")),
     sort_i4_ (program_, "vector_sort_i4"),
-    cmptr_i16_ (program_, "comparator_vect_i4"),
+    big_sort_i4_ (program_, "big_vector_sort_i4"),
     max_group_size_ (device.getInfo <CL_DEVICE_MAX_WORK_GROUP_SIZE> ())
 {
     const std::size_t local_size = device.getInfo <CL_DEVICE_LOCAL_MEM_SIZE> ();
-    const std::size_t max_possible_group_size = local_size / (8 * 2 * sizeof (int));
+    const std::size_t max_possible_group_size = local_size / (4 * 2 * sizeof (int));
     if (max_group_size_ > max_possible_group_size) {
         max_group_size_ = round_down_pow2 (max_possible_group_size);
     }
@@ -358,43 +358,20 @@ Sorter::Sorter (cl::Device device) :
     max_group_size_ = round_down_pow2 (max_group_size_);
 }
 
-bool isEqual (double a, double b) {
-    return std::fabs (a - b) < 1e-6;
-}
-
-void bitonic_merge (int* data, std::size_t start, std::size_t size, int dir) {
-    const std::size_t max_size = size / 2;
-
-    while (size /= 2) {
-        const std::size_t stage = max_size / size;
-
-        for (std::size_t j = 0; j < stage; ++j) { 
-            for (std::size_t i = 0; i < size; ++i) {
-                const std::size_t begin = start + i + j * 2 * size;
-                comparator (vec[begin], vec[begin + size], dir);
-
-                
-            }
-        }
-    }
-}
-
-
-
 // size == pow (8, n)
 template <>
 void
 Sorter::vect_sort <int> (int* data, size_t size) {
-    size_t size_block = 2 * sizeof (int) * max_group_size_;
+    size_t size_block = 2 * 4 * sizeof (int) * max_group_size_;
 
-    std::size_t num_int_in_work_item = 8;
+    std::size_t num_int_on_work_item = 8;
 
     // Prepeare size and add_size
     std::size_t add_size = 0;
-    if (size < num_int_in_work_item) {
-        add_size = num_int_in_work_item - size;
+    if (size < num_int_on_work_item) {
+        add_size = num_int_on_work_item - size;
     } else {
-        unsigned n = std::log2 (2 * size / num_int_in_work_item);
+        unsigned n = std::log2 (2 * size / num_int_on_work_item);
         while ((1 << n) < size) {
             add_size = (1 << ++n);
         }
@@ -404,7 +381,7 @@ Sorter::vect_sort <int> (int* data, size_t size) {
     std::size_t full_size = size + add_size;
 
     // Number necessary work items
-    std::size_t num_items = full_size / num_int_in_work_item;
+    std::size_t num_items = full_size / num_int_on_work_item;
 
     if (num_items <= max_group_size_) {
         cl::NDRange global (num_items);
@@ -418,8 +395,8 @@ Sorter::vect_sort <int> (int* data, size_t size) {
         cl::Buffer buffer (context_, CL_MEM_READ_WRITE, full_size * sizeof (int));
         cl::copy (cmd_queue_, data, data + size, buffer);
 
-        std::vector <int> poison (add_size, INT32_MAX);
         if (add_size != 0) {
+            std::vector <int> poison (add_size, INT32_MAX);
             cmd_queue_.enqueueWriteBuffer (buffer, true, sizeof (int) * size,
                                            sizeof (int) * add_size, poison.data ());
         }
@@ -432,7 +409,7 @@ Sorter::vect_sort <int> (int* data, size_t size) {
         cl::EnqueueArgs args {cmd_queue_, global, local};
 
         cl::LocalSpaceArg local_buf {
-            .size_ = 8 * sizeof (int) * max_group_size_
+            .size_ = 2 * 4 * sizeof (int) * max_group_size_
         };
 
         cl::Buffer buffer (context_, CL_MEM_READ_WRITE, full_size * sizeof (int));
@@ -444,9 +421,11 @@ Sorter::vect_sort <int> (int* data, size_t size) {
                                            sizeof (int) * add_size, poison.data ());
         }
 
-        sort_i4_ (args, buffer, local_buf, 0);
+        const std::size_t number_blocks = full_size / (4 * max_group_size_);
+        big_sort_i4_ (args, buffer, local_buf, number_blocks);
+
         cl::copy (cmd_queue_, buffer, data, data + size);
     }
-}
+} // void Sorter::vect_sort <int> (int* data, size_t size)
 
 } // namespace hidra

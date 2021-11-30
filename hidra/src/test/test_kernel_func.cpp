@@ -107,7 +107,7 @@ TEST (TEST_KERNEL, vector_sort_i4) {
     // mersenne.seed (3);
 
     const std::string name_kernel_func = "vector_sort_i4";
-    const std::size_t repeat = 100;
+    const std::size_t repeat = 1;
     const std::size_t size = 8 * 1 << 10; // Max 8 * 1 << 10
     const cl_int dir = 1;
 

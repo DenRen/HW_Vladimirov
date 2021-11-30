@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.0.0)
 project (main VERSION 0.1.0)
 
 set (CMAKE_CXX_STANDARD 17)
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -flto")
 
 add_compile_definitions (CL_HPP_ENABLE_EXCEPTIONS)
 

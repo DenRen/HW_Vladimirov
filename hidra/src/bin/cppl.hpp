@@ -110,7 +110,7 @@ class Sorter {
 
     cl::Program program_;
     cl::KernelFunctor <cl::Buffer, cl::LocalSpaceArg, cl_int> sort_i4_;
-    cl::KernelFunctor <cl::Buffer, cl::LocalSpaceArg, cl_int, cl_uint> cmptr_i16_;
+    cl::KernelFunctor <cl::Buffer, cl::LocalSpaceArg, cl_uint> big_sort_i4_;
 
     uint32_t max_group_size_;
 
