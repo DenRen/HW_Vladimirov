@@ -1,4 +1,5 @@
 #include "cppl.hpp"
+#include "other_func.hpp"
 
 #include <fstream>
 #include <string>
@@ -7,14 +8,10 @@
 #include <sstream>
 #include <cmath>
 
-#include <boost/type_index.hpp>
-
-using boost::typeindex::type_id_with_cvr;
-
 namespace hidra {
 
-DeviceProvider::DeviceProvider (cl_device_type device_type,
-                                std::string_view version) :
+DeviceProvider::DeviceProvider (cl_device_type device_type, // Device type (CPU, GPU, ...)
+                                std::string_view version) : // Version of OpenCL (Ex.: OpenCL 3.0)
     defualt_device_ (nullptr)
 {
     std::vector <cl::Platform> platforms;
@@ -48,8 +45,11 @@ DeviceProvider::DeviceProvider (cl_device_type device_type,
 }
 
 static void
-print_words (std::stringstream& stream, std::string words,
-             int num_tabs = 1, const char sep = ' ') {
+print_words (std::stringstream& stream, // The output stream
+            std::string words,          // Words separated sep
+             int num_tabs = 1,          // Number of indents
+             const char sep = ' ')      // Separator symbol
+{
     std::size_t begin_pos = 0;
 
     for (std::size_t space_pos = words.find (sep);
@@ -67,7 +67,9 @@ print_words (std::stringstream& stream, std::string words,
 }
 
 static std::stringstream&
-getAllPlatformInfo (std::stringstream& stream, const cl::Platform& platform) {
+getAllPlatformInfo (std::stringstream& stream,    // The output stream
+                    const cl::Platform& platform) // Platform under test
+{
     stream
         << "Profile: " << platform.getInfo <CL_PLATFORM_PROFILE> () << std::endl
         << "Version: " << platform.getInfo <CL_PLATFORM_VERSION> () << std::endl
@@ -80,11 +82,13 @@ getAllPlatformInfo (std::stringstream& stream, const cl::Platform& platform) {
     print_words (stream, extensions);
 
     return stream;
-}
+} // getAllPlatformInfo (std::stringstream& stream, const cl::Platform& platform)
 
 template <typename Traits, typename CharT>
 std::basic_ostream <CharT, Traits>&
-deviceTypeToStringstream (std::basic_ostream <CharT, Traits>& stream, cl_device_type type) {
+deviceTypeToStringstream (std::basic_ostream <CharT, Traits>& stream, // The output stream
+                          cl_device_type type)                        // Device type
+{
     switch (type) {
     case CL_DEVICE_TYPE_DEFAULT:
         return stream << "Default";
@@ -103,34 +107,16 @@ deviceTypeToStringstream (std::basic_ostream <CharT, Traits>& stream, cl_device_
     };
 
     return stream;
-} // deviceTypeToStringstream
-
-template <typename T, typename Traits, typename CharT>
-std::basic_ostream <CharT, Traits>&
-operator << (std::basic_ostream <CharT, Traits>& stream, const std::vector <T>& vec) {
-    const std::size_t size = vec.size ();
-    if (size != 0) {
-        for (std::size_t i = 0; i + 1 < size; ++i) {
-            stream << vec[i] << " ";
-        }
-        stream << vec[size - 1];
-    }
-
-    return stream;
-}
-
-template <typename CharT, typename Traits>
-std::basic_ostream <CharT, Traits>&
-tab (std::basic_ostream <CharT, Traits>& os) {
-    return os.put (os.widen ('\t'));
-}
+} // deviceTypeToStringstream (std::basic_ostream <CharT, Traits>& stream, cl_device_type type)
 
 #undef PRINT
 #define PRINT(str, info_id) \
     << tab << str ": " << device.getInfo <info_id> () << std::endl
 
 static std::stringstream&
-getAllDeviceInfo (std::stringstream& stream, const cl::Device& device) {
+getAllDeviceInfo (std::stringstream& stream, // The stream where the device info string will be written
+                  const cl::Device& device)  // Device under test
+{
     stream << tab << "Device type: ";
     deviceTypeToStringstream (stream, device.getInfo <CL_DEVICE_TYPE> ()) << std::endl;
 
@@ -226,99 +212,49 @@ DeviceProvider::dumpAll () {
 
         return stream.str ();
     }
-}
+} // DeviceProvider::dumpAll ()
 
 cl::Platform
 DeviceProvider::getDefaultPlatform () const {
     return default_platform_;
-}
+} // DeviceProvider::getDefaultPlatform () const
 cl::Device DeviceProvider::getDefaultDevice () const {
     return defualt_device_;
-}
+} // DeviceProvider::getDefaultDevice () const
 
 std::string
 DeviceProvider::getDefaultPlatformName () const {
     return default_platform_.getInfo <CL_PLATFORM_NAME> ();
-}
+} // DeviceProvider::getDefaultPlatformName () const
 std::string
 DeviceProvider::getDefaultDeviceName () const {
     return defualt_device_.getInfo <CL_DEVICE_NAME> ();
-}
+} // DeviceProvider::getDefaultPlatformName () const
 
 static std::string
-readSource (std::string fileName) {
+readSource (std::string fileName) // The name of the file from which everything will be read
+{
     using stream = std::istreambuf_iterator <std::string::traits_type::char_type>;
 
     std::ifstream file (fileName);
     return std::string (stream (file), stream ());
-}
+} // readSource (std::string fileName)
 
-Adder::Adder (cl::Device device) :
-    device_ (device),
-    context_ (device_),
-    cmd_queue_ (context_),
-    program_ (context_, readSource ("kernels/adder.cl"), true)
-{}
-
-template <>
-std::string_view
-Adder::getFuncName_VectAddInArg <int> () {
-    return "vector_add_in_arg_i32";
-}
-
-template <>
-std::string_view
-Adder::getFuncName_VectAddInArg <long> () {
-    return "vector_add_in_arg_i64";
-}
-
-template <>
-std::string_view
-Adder::getFuncName_VectAddInArg <unsigned> () {
-    return "vector_add_in_arg_u32";
-}
-
-template <>
-std::string_view
-Adder::getFuncName_VectAddInArg <unsigned long> () {
-    return "vector_add_in_arg_u64";
-}
-
-template <>
-std::string_view
-Adder::getFuncName_VectAdd <int> () {
-    return "vector_add_i32";
-}
-
-template <>
-std::string_view
-Adder::getFuncName_VectAdd <long> () {
-    return "vector_add_i64";
-}
-
-template <>
-std::string_view
-Adder::getFuncName_VectAdd <unsigned> () {
-    return "vector_add_u32";
-}
-
-template <>
-std::string_view
-Adder::getFuncName_VectAdd <unsigned long> () {
-    return "vector_add_u64";
-}
 static int
-round_down_pow2 (int n) {
+round_down_pow2 (int n) // Number to be rounded
+{
     int i = 0;
     for (; n != 0; ++i) {
         n >>= 1;
     }
 
     return 1 << (i - 1);
-}
+} // round_down_pow2 (int n)
 
 static cl::Program
-buildProgram (cl::Context context, std::string name_kernel_func) {
+buildProgram (cl::Context context,           // The context in which the program will be built
+              std::string name_kernel_func)  // Name kernel function
+{
     cl::Program program (context, readSource (name_kernel_func));
     try {
         program.build ();
@@ -338,9 +274,9 @@ buildProgram (cl::Context context, std::string name_kernel_func) {
     }
 
     return program;
-}
+} // buildProgram (cl::Context context, std::string name_kernel_func)
 
-Sorter::Sorter (cl::Device device) :
+Sorter::Sorter (cl::Device device) : // The device on which the sorter will work
     device_ (device),
     context_ (device_),
     cmd_queue_ (context_),
@@ -356,12 +292,13 @@ Sorter::Sorter (cl::Device device) :
     }
 
     max_group_size_ = round_down_pow2 (max_group_size_);
-}
+} // Sorter::Sorter (cl::Device device)
 
-// size == pow (8, n)
 template <>
 void
-Sorter::vect_sort <int> (int* data, size_t size) {
+Sorter::vect_sort <int> (int* data,   // Data to be sorted
+                         size_t size) // The size of the data in the number of int
+{
     size_t size_block = 2 * 4 * sizeof (int) * max_group_size_;
 
     std::size_t num_int_on_work_item = 8;
@@ -426,6 +363,6 @@ Sorter::vect_sort <int> (int* data, size_t size) {
 
         cl::copy (cmd_queue_, buffer, data, data + size);
     }
-} // void Sorter::vect_sort <int> (int* data, size_t size)
+} // Sorter::vect_sort <int> (int* data, size_t size)
 
 } // namespace hidra

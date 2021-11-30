@@ -17,7 +17,10 @@ test_sort_int4 (__global __read_write int4* g_arr, int dir) {
 #endif // ENABLE_TESTING
 
 void
-_sort_int8 (int8 arr, int8* res, int dir) {
+_sort_int8 (int8 arr,   // Set of screws to be sorted
+            int8* res,  // Pointer to write the result
+            int dir)    // Direction sort (0 -> /, 1 -> \)
+{
     int4 tmp4;
 
     SORT_INT4 (arr.s0123, tmp4, arr.s0123, dir);
@@ -28,27 +31,37 @@ _sort_int8 (int8 arr, int8* res, int dir) {
 
     SORT_INT4 (arr.s0123, tmp4, res->s0123, dir);
     SORT_INT4 (arr.s4567, tmp4, res->s4567, dir);
-}
-
+} // _sort_int8 (int8 arr, int8* res, int dir)
 
 #ifdef ENABLE_TESTING
 __kernel void
-test_sort_int8 (__global __read_write int8* g_arr, int dir) {
+test_sort_int8 (__read_write
+                __global int8* g_arr, // Pointer to the data to be sorted
+                int dir)              // Direction sort (0 -> /, 1 -> \)
+{
     int8 arr = *g_arr;
     _sort_int8 (arr, &arr, dir);
     *g_arr = arr;
-}
+} // test_sort_int8 (__global __read_write int8* g_arr, int dir)
 #endif // ENABLE_TESTING
+
+/////////////////////////////////////////////////////////////
+// Bitonic sort:                                           //
+// ------------                                            //
+// https://neerc.ifmo.ru/wiki/index.php?title=Сеть_Бетчера //
+/////////////////////////////////////////////////////////////
 
 // Data should be mult 8 * sizeof (int)
 // glob_size == local_size == num_int4 / 2
 __kernel void
-vector_sort_i4 (__global __read_write int4* g_buf,
-                __local int4* l_buf,
-                int init_dir)
+vector_sort_i4 (__read_write
+                __global int4* g_buf, // Pointer to the data to be sorted
+                __local int4* l_buf,  // Pointer to the local buffer
+                                      // for to store the entire array
+                int init_dir)         // Direction sort (0 -> /, 1 -> \)
 {
-    uint pos = get_global_id (0);
-    uint max_size = 2 * get_global_size (0);
+    const uint pos = get_global_id (0);
+    const uint max_size = 2 * get_global_size (0);
 
     // Sort with dir 8 ints and load it in local memory
     _sort_int8 (*(int8*) &g_buf[2 * pos], (int8*) &l_buf[2 * pos], (pos % 2) ^ init_dir);
@@ -86,7 +99,7 @@ comparator_i4 (__read_write
 
     const uint block_size = get_global_size (0); // In int4
     const uint max_size = 2 * block_size;        // In int4
-    const uint dist = second - first - 1;        // In block_size 
+    const uint dist = second - first - 1;        // In block_size
 
     if (pos < block_size / 2) {
         g_buf += first * block_size;

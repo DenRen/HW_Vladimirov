@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.0.0)
 project (main VERSION 0.1.0)
 
 set (CMAKE_CXX_STANDARD 17)
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -flto")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 
 add_compile_definitions (CL_HPP_ENABLE_EXCEPTIONS)
 
@@ -36,8 +36,7 @@ include_directories (${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 #######################
 # Add test cpp file
 set (TEST_DIR "src/test")
-add_executable (run_tests ${TEST_DIR}/test_adder.cpp
-                          ${TEST_DIR}/test_sorter.cpp
+add_executable (run_tests ${TEST_DIR}/test_sorter.cpp
                           ${TEST_DIR}/test_kernel_func.cpp
                           ${BIN_DIR}/cppl.cpp
                           ${BIN_DIR}/mycllib.cpp)

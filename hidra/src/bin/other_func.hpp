@@ -27,10 +27,11 @@ bool operator == (const std::vector <T>& lhs, const std::vector <T>& rhs) {
 
     return true;
 }
-
 template <typename T, typename Traits, typename CharT>
 std::basic_ostream <CharT, Traits>&
-operator << (std::basic_ostream <CharT, Traits>& stream, const std::vector <T>& vec) {
+operator << (std::basic_ostream <CharT, Traits>& stream, // The stream where the vector data will be written
+             const std::vector <T>& vec)                 // Vector
+{
     const std::size_t size = vec.size ();
     if (size != 0) {
         for (std::size_t i = 0; i + 1 < size; ++i) {
@@ -40,7 +41,14 @@ operator << (std::basic_ostream <CharT, Traits>& stream, const std::vector <T>& 
     }
 
     return stream;
-}
+} // operator << (std::basic_ostream <CharT, Traits>& stream, const std::vector <T>& vec)
+
+template <typename CharT, typename Traits>
+std::basic_ostream <CharT, Traits>&
+tab (std::basic_ostream <CharT, Traits>& os) // Output stream
+{
+    return os.put (os.widen ('\t'));
+} // tab (std::basic_ostream <CharT, Traits>& os)
 
 template <typename T, typename Rand>
 std::vector <T>
