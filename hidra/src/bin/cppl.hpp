@@ -51,4 +51,6 @@ public:
 
 }; // class Sorter
 
+void testSpeed ();
+
 } // namespace hidra

@@ -7,6 +7,8 @@
 #include <iomanip>
 #include <sstream>
 #include <cmath>
+#include <random>
+#include <chrono>
 
 namespace hidra {
 
@@ -364,5 +366,60 @@ Sorter::vect_sort <int> (int* data,   // Data to be sorted
         cl::copy (cmd_queue_, buffer, data, data + size);
     }
 } // Sorter::vect_sort <int> (int* data, size_t size)
+
+void
+testSpeed () {
+    hidra::DeviceProvider device_provider;
+    cl::Device device = device_provider.getDefaultDevice ();
+    hidra::Sorter sorter (device);
+
+    std::random_device rd;
+    std::mt19937 mersenne (rd ());
+
+    const size_t min_size_arr = 8 * 1 << 4;
+    const size_t max_size_arr = 8 * 1 << 20;
+    const size_t repeat = 10;
+
+    for (std::size_t size_arr = min_size_arr; size_arr <= max_size_arr; size_arr *= 2) {
+        // Generate vectors
+        std::vector <std::vector <int>> vecs;
+        vecs.reserve (repeat);
+        for (std::size_t i = 0; i < repeat; ++i) {
+            vecs.push_back (getRandFillVector <int> (size_arr, mersenne));
+        }
+        auto copy_vecs = vecs;
+
+        // Test GPU
+        auto gpu_begin = std::chrono::steady_clock::now ();
+        for (auto& vec : vecs) {
+            sorter.vect_sort (vec.data (), vec.size ());  
+        }
+        auto gpu_end = std::chrono::steady_clock::now ();
+
+        // Test CPU
+        auto cpu_begin = std::chrono::steady_clock::now ();
+        for (auto& vec : copy_vecs) {
+            std::sort (vec.begin (), vec.end ());
+        }
+        auto cpu_end = std::chrono::steady_clock::now ();
+
+        for (std::size_t i = 0; i < repeat; ++i) {
+            if (copy_vecs[i] != vecs[i]) {
+                std::cerr << "Error! copy_vecs_cpu[i] != vecs[i]" << std::endl;
+            }
+        }
+
+        auto to_ns = [] (auto time) {
+            return std::chrono::duration_cast <std::chrono::milliseconds> (time);
+        };
+        auto gpu_time = to_ns (gpu_end - gpu_begin) / repeat;
+        auto cpu_time = to_ns (cpu_end - cpu_begin) / repeat;
+        
+        std::cout << "Size array: " << std::setw (10) << size_arr << std::endl
+                  << tab << "time GPU: " <<  std::setw (10) << gpu_time.count () << std::endl
+                  << tab << "time CPU: " <<  std::setw (10) << cpu_time.count () << std::endl;
+        
+    }
+} // testSpeed ()
 
 } // namespace hidra

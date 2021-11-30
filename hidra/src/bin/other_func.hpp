@@ -13,7 +13,27 @@ readSource (std::string fileName) {
 }
 
 template <typename T>
-bool operator == (const std::vector <T>& lhs, const std::vector <T>& rhs) {
+bool operator != (const std::vector <T>& lhs,
+                  const std::vector <T>& rhs)
+{
+    const std::size_t size = lhs.size ();
+    if (size != rhs.size ()) {
+        return true;
+    }
+
+    for (std::size_t i = 0; i < size; ++i) {
+        if (lhs[i] != rhs[i]) {
+            return true;
+        }
+    }
+
+    return false;
+} // bool operator != (const std::vector <T>& lhs, const std::vector <T>& rhs)
+
+template <typename T>
+bool operator == (const std::vector <T>& lhs,
+                  const std::vector <T>& rhs)
+{
     const std::size_t size = lhs.size ();
     if (size != rhs.size ()) {
         return false;
@@ -26,7 +46,8 @@ bool operator == (const std::vector <T>& lhs, const std::vector <T>& rhs) {
     }
 
     return true;
-}
+} // bool operator == (const std::vector <T>& lhs, const std::vector <T>& rhs)
+
 template <typename T, typename Traits, typename CharT>
 std::basic_ostream <CharT, Traits>&
 operator << (std::basic_ostream <CharT, Traits>& stream, // The stream where the vector data will be written
@@ -52,30 +73,38 @@ tab (std::basic_ostream <CharT, Traits>& os) // Output stream
 
 template <typename T, typename Rand>
 std::vector <T>
-getRandFillVector (std::size_t size, Rand& rand) {
+getRandFillVector (std::size_t size,
+                   Rand& rand)
+{
     std::vector <T> vec (size);
     for (auto& item : vec) {
         item = rand ();
     }
 
     return vec; // RVO
-}
+} // getRandFillVector (std::size_t size, Rand& rand)
 
 
 template <typename T, typename Rand>
 std::vector <T>
-getRandFillVector (std::size_t size, Rand& rand, T module) {
+getRandFillVector (std::size_t size,
+                   Rand& rand,
+                   T module)
+{
     std::vector <T> vec (size);
     for (auto& item : vec) {
         item = rand () % module;
     }
 
     return vec; // RVO
-}
+} // getRandFillVector (std::size_t size, Rand& rand, T module)
 
 template <typename T>
 void
-checkEqual (std::vector <T>& source_vec, const std::vector <T>& sorted_vec, bool dir = false) {
+checkEqual (      std::vector <T>& source_vec,
+            const std::vector <T>& sorted_vec,
+            bool dir = false)
+{
     auto copy_src_vec = source_vec;
 
     if (dir == false) {
@@ -93,4 +122,5 @@ checkEqual (std::vector <T>& source_vec, const std::vector <T>& sorted_vec, bool
         << "vec: " << sorted_vec   << std::endl
         << "ref: " << source_vec   << std::endl
         << "dir: " << dir          << std::endl;
-}
+} // checkEqual (std::vector <T>& source_vec,
+  //             const std::vector <T>& sorted_vec, bool dir = false)
