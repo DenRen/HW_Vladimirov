@@ -6,7 +6,6 @@
 #include <algorithm>
 #include <random>
 
-#include "../bin/mycllib.h"
 #include "../bin/cppl.hpp"
 #include "../bin/other_func.hpp"
 
@@ -20,7 +19,7 @@ struct ocl_ctx_t {
     cl::Program program;
 
     ocl_ctx_t () :
-        ocl_ctx_t ("kernels/sorter_v6.cl")
+        ocl_ctx_t ("kernels/sorter.cl")
     {} // ocl_ctx_t ()
 
     ocl_ctx_t (std::string path_kernel) : // The path to the kerenl (.cl) file
@@ -106,79 +105,3 @@ TEST (TEST_KERNEL, sort_int8) {
         test_sort_intn (8, ctx, "test_sort_int8", mersenne, i % 2);
     }
 } // TEST (TEST_KERNEL, sort_int8)
-
-TEST (TEST_KERNEL, vector_sort_i4) {
-    ocl_ctx_t ctx;
-    std::random_device rd;
-    std::mt19937 mersenne (rd ());
-    // mersenne.seed (3);
-
-    const std::string name_kernel_func = "vector_sort_i4";
-    const std::size_t repeat = 1;
-    const std::size_t size = 8 * 1 << 10; // Max 8 * 1 << 10
-    const cl_int dir = 1;
-
-    std::vector <std::vector <int>> vecs;
-    vecs.reserve (repeat);
-    for (std::size_t i = 0; i < repeat; ++i) {
-        vecs.push_back (getRandFillVector <int> (size, mersenne));
-    }
-
-    auto save_vecs = vecs;
-
-    for (std::size_t i = 0; i < repeat; ++i) {
-        cl::KernelFunctor <cl::Buffer, cl::LocalSpaceArg, cl_int>
-            sort_intn (ctx.program, name_kernel_func);
-
-        cl::Buffer buffer = getBuffer (ctx, vecs[i]);
-
-        const std::size_t num_item_data_block = size / (2 * sizeof (vecs[0][0]));
-
-        cl::NDRange global (num_item_data_block);
-        cl::NDRange local (global);
-        cl::EnqueueArgs args {ctx.cmd_queue, global, local};
-        cl::LocalSpaceArg local_buffer { size * sizeof (vecs[0][0]) };
-
-        sort_intn (args, buffer, local_buffer, dir);
-
-        cl::copy (ctx.cmd_queue, buffer, vecs[i].data (), vecs[i].data () + vecs[i].size ());
-
-        checkEqual (save_vecs[i], vecs[i], dir);
-    }
-} // TEST (TEST_KERNEL, vector_sort_i4)
-/*
-TEST (TEST_KERNEL, sort_int) {
-    ocl_ctx_t ctx;
-    std::random_device rd;
-    std::mt19937 mersenne (rd ());
-    mersenne.seed (3);
-
-    const std::string name_kernel_func = "sort_int";
-    const std::size_t repeat = 1;
-    const std::size_t size = 1 << 10;
-
-    std::vector <std::vector <int>> vecs;
-    vecs.reserve (repeat);
-    for (std::size_t i = 0; i < repeat; ++i) {
-        vecs.push_back (getRandFillVector <int> (4 * size, mersenne, 30));
-    }
-    auto save_vecs = vecs;
-
-    for (std::size_t i = 0; i < repeat; ++i) {
-        cl::KernelFunctor <cl::Buffer, cl::LocalSpaceArg>
-            sort_int (ctx.program, name_kernel_func);
-
-        cl::Buffer buffer = getBuffer (ctx, vecs[i]);
-
-        cl::NDRange global (size);
-        cl::NDRange local (size);
-        cl::EnqueueArgs args {ctx.cmd_queue, global, local};
-        cl::LocalSpaceArg local_buffer { 4 * size * sizeof (vecs[0][0]) };
-
-        sort_int (args, buffer, local_buffer);
-
-        cl::copy (ctx.cmd_queue, buffer, vecs[i].data (), vecs[i].data () + vecs[i].size ());
-        
-        checkEqual (save_vecs[i], vecs[i]);
-    }
-} // TEST (TEST_KERNEL, sort_int)*/

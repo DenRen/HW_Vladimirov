@@ -46,184 +46,7 @@ DeviceProvider::DeviceProvider (cl_device_type device_type, // Device type (CPU,
 
         throw cl::Error (0, err_msg.c_str ());
     }
-}
-
-static void
-print_words (std::stringstream& stream, // The output stream
-             std::string words,         // Words separated sep
-             int num_tabs = 1,          // Number of indents
-             const char sep = ' ')      // Separator symbol
-{
-    std::size_t begin_pos = 0;
-
-    for (std::size_t space_pos = words.find (sep);
-         space_pos != std::string::npos;
-         space_pos = words.find (sep, begin_pos))
-    {
-        size_t len = space_pos - begin_pos;
-        for (int i = 0; i < num_tabs; ++i) {
-            stream << "\t";
-        }
-
-        stream << words.substr (begin_pos, len) << std::endl;
-        begin_pos = space_pos + 1;
-    }
-}
-
-static std::stringstream&
-getAllPlatformInfo (std::stringstream& stream,    // The output stream
-                    const cl::Platform& platform) // Platform under test
-{
-    stream
-        << "Profile: " << platform.getInfo <CL_PLATFORM_PROFILE> () << std::endl
-        << "Version: " << platform.getInfo <CL_PLATFORM_VERSION> () << std::endl
-        << "Name: "    << platform.getInfo <CL_PLATFORM_NAME>    () << std::endl
-        << "Vecndor: " << platform.getInfo <CL_PLATFORM_VENDOR>  () << std::endl;
-
-    std::string extensions = platform.getInfo <CL_PLATFORM_EXTENSIONS> ();
-    stream << "Ectentions: " << std::endl;
-
-    print_words (stream, extensions);
-
-    return stream;
-} // getAllPlatformInfo (std::stringstream& stream, const cl::Platform& platform)
-
-template <typename Traits, typename CharT>
-std::basic_ostream <CharT, Traits>&
-deviceTypeToStringstream (std::basic_ostream <CharT, Traits>& stream, // The output stream
-                          cl_device_type type)                        // Device type
-{
-    switch (type) {
-    case CL_DEVICE_TYPE_DEFAULT:
-        return stream << "Default";
-    case CL_DEVICE_TYPE_CPU:
-        return stream << "CPU";
-    case CL_DEVICE_TYPE_GPU:
-        return stream << "GPU";
-    case CL_DEVICE_TYPE_ACCELERATOR:
-        return stream << "ACCELERATOR";
-    case CL_DEVICE_TYPE_CUSTOM:
-        return stream << "CUSTOM";
-    case CL_DEVICE_TYPE_ALL:
-        return stream << "ALL";
-    default:
-        return stream << "Undefined";
-    };
-
-    return stream;
-} // deviceTypeToStringstream (std::basic_ostream <CharT, Traits>& stream, cl_device_type type)
-
-#undef PRINT
-#define PRINT(str, info_id) \
-    << tab << str ": " << device.getInfo <info_id> () << std::endl
-
-static std::stringstream&
-getAllDeviceInfo (std::stringstream& stream, // The stream where the device info string will be written
-                  const cl::Device& device)  // Device under test
-{
-    stream << tab << "Device type: ";
-    deviceTypeToStringstream (stream, device.getInfo <CL_DEVICE_TYPE> ()) << std::endl;
-
-    stream
-        PRINT ("Vendor Id",                 CL_DEVICE_VENDOR_ID)
-        PRINT ("Max compute units",         CL_DEVICE_MAX_COMPUTE_UNITS)
-        PRINT ("Max work item dimensions",  CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS)
-        PRINT ("Max work group size",       CL_DEVICE_MAX_WORK_GROUP_SIZE)
-        PRINT ("Max work item sizes",       CL_DEVICE_MAX_WORK_ITEM_SIZES)
-        << std::endl
-        PRINT ("Prereferd vector width char",   CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR)
-        PRINT ("Prereferd vector width short",  CL_DEVICE_PREFERRED_VECTOR_WIDTH_SHORT)
-        PRINT ("Prereferd vector width int" ,   CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT)
-        PRINT ("Prereferd vector width long",   CL_DEVICE_PREFERRED_VECTOR_WIDTH_LONG)
-        PRINT ("Prereferd vector width float",  CL_DEVICE_PREFERRED_VECTOR_WIDTH_FLOAT)
-        PRINT ("Prereferd vector width double", CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE)
-        << std::endl
-        PRINT ("Native vector width char",   CL_DEVICE_NATIVE_VECTOR_WIDTH_CHAR)
-        PRINT ("Native vector width short",  CL_DEVICE_NATIVE_VECTOR_WIDTH_SHORT)
-        PRINT ("Native vector width int" ,   CL_DEVICE_NATIVE_VECTOR_WIDTH_INT)
-        PRINT ("Native vector width long",   CL_DEVICE_NATIVE_VECTOR_WIDTH_LONG)
-        PRINT ("Native vector width float",  CL_DEVICE_NATIVE_VECTOR_WIDTH_FLOAT)
-        PRINT ("Native vector width double", CL_DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE)
-        << std::endl
-        PRINT ("Max clock frequency",    CL_DEVICE_MAX_CLOCK_FREQUENCY)
-        PRINT ("Address bits",           CL_DEVICE_ADDRESS_BITS)
-        PRINT ("Max read image args",    CL_DEVICE_MAX_READ_IMAGE_ARGS)
-        PRINT ("Max write image args"  , CL_DEVICE_MAX_WRITE_IMAGE_ARGS)
-        PRINT ("Max memory alloc size" , CL_DEVICE_MAX_MEM_ALLOC_SIZE)
-        << std::endl
-        PRINT ("Image support"      , CL_DEVICE_IMAGE_SUPPORT)
-        PRINT ("Image2D max width"  , CL_DEVICE_IMAGE2D_MAX_WIDTH)
-        PRINT ("Image2D max height" , CL_DEVICE_IMAGE2D_MAX_HEIGHT)
-        PRINT ("Image3D max width"  , CL_DEVICE_IMAGE3D_MAX_WIDTH)
-        PRINT ("Image3D max height" , CL_DEVICE_IMAGE3D_MAX_HEIGHT)
-        PRINT ("Image3D max depth"  , CL_DEVICE_IMAGE3D_MAX_DEPTH)
-        << std::endl
-        PRINT ("Max parameter size",        CL_DEVICE_MAX_PARAMETER_SIZE)
-        PRINT ("Max samplers",              CL_DEVICE_MAX_SAMPLERS)
-        PRINT ("Memory base addr align",    CL_DEVICE_MEM_BASE_ADDR_ALIGN)
-        PRINT ("Min data type align size",  CL_DEVICE_MIN_DATA_TYPE_ALIGN_SIZE)
-        PRINT ("Single FP config",          CL_DEVICE_SINGLE_FP_CONFIG) // todo
-        << std::endl
-        PRINT ("Global memory cache type",      CL_DEVICE_GLOBAL_MEM_CACHE_TYPE)
-        PRINT ("Global memory cache line size", CL_DEVICE_GLOBAL_MEM_CACHELINE_SIZE)
-        PRINT ("Global memory size",            CL_DEVICE_GLOBAL_MEM_SIZE)
-        PRINT ("Max constant buffer size",      CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE)
-        PRINT ("Max constant args",             CL_DEVICE_MAX_CONSTANT_ARGS)
-        PRINT ("Local memory type",             CL_DEVICE_LOCAL_MEM_TYPE)
-        PRINT ("Lcoal memory size",             CL_DEVICE_LOCAL_MEM_SIZE)
-        << std::endl
-        PRINT ("Error correction support",   CL_DEVICE_ERROR_CORRECTION_SUPPORT)
-        PRINT ("Profiling timer resolution", CL_DEVICE_PROFILING_TIMER_RESOLUTION)
-        PRINT ("Little endian",              CL_DEVICE_ENDIAN_LITTLE)
-        PRINT ("Available",                  CL_DEVICE_AVAILABLE)
-        << std::endl
-        PRINT ("Compiler available",       CL_DEVICE_COMPILER_AVAILABLE)
-        PRINT ("Execution capabilities",   CL_DEVICE_EXECUTION_CAPABILITIES)
-        PRINT ("Queue properties",         CL_DEVICE_QUEUE_PROPERTIES)
-        PRINT ("Queue on host properties", CL_DEVICE_QUEUE_ON_HOST_PROPERTIES)
-        << std::endl
-        PRINT ("Name",           CL_DEVICE_NAME)
-        PRINT ("Vendor",         CL_DEVICE_VENDOR)
-        PRINT ("Driver version", CL_DRIVER_VERSION)
-        PRINT ("Profile",        CL_DEVICE_PROFILE)
-        PRINT ("Platform",       CL_DEVICE_PLATFORM)
-        << std::endl;
-
-        std::string extensions = device.getInfo <CL_DEVICE_EXTENSIONS> ();
-        stream << tab << "Ectentions: " << std::endl;
-
-        print_words (stream, extensions, 2);
-
-        return stream;
-} // getAllDeviceInfo (std::stringstream& stream, const cl::Device& device)
-
-#undef PRINT
-
-std::string
-DeviceProvider::dumpAll () {
-    std::stringstream stream;
-
-    std::vector <cl::Platform> platforms;
-    cl::Platform::get (&platforms);
-
-    if (platforms.size () == 0) {
-        return "Platforms not found";
-    }
-
-    for (const auto& platform : platforms) {
-        getAllPlatformInfo (stream, platform);
-
-        std::vector <cl::Device> devices;
-        platform.getDevices (CL_DEVICE_TYPE_ALL, &devices);
-        for (const auto& device : devices) {
-            stream << std::endl << "Device " << device.getInfo <CL_DEVICE_NAME> ()
-                   << ":" << std::endl;
-            getAllDeviceInfo (stream, device);
-        }
-    }
-
-    return stream.str ();
-} // DeviceProvider::dumpAll ()
+} // DeviceProvider::DeviceProvider (cl_device_type device_type, std::string_view version)
 
 cl::Platform
 DeviceProvider::getDefaultPlatform () const {
@@ -241,15 +64,6 @@ std::string
 DeviceProvider::getDefaultDeviceName () const {
     return defualt_device_.getInfo <CL_DEVICE_NAME> ();
 } // DeviceProvider::getDefaultPlatformName () const
-
-static std::string
-readSource (std::string fileName) // The name of the file from which everything will be read
-{
-    using stream = std::istreambuf_iterator <std::string::traits_type::char_type>;
-
-    std::ifstream file (fileName);
-    return std::string (stream (file), stream ());
-} // readSource (std::string fileName)
 
 static int
 round_down_pow2 (int n) // Number to be rounded
@@ -294,7 +108,7 @@ Sorter::Sorter (cl::Device device) : // The device on which the sorter will work
     device_ (device),
     context_ (device_),
     cmd_queue_ (context_),
-    program_ (buildProgram (context_, "kernels/sorter_v7.cl")),
+    program_ (buildProgram (context_, "kernels/sorter.cl")),
     bitonic_sort_local_      (program_, "i4_bitonic_sort_local"),
     bitonic_sort_full_local_ (program_, "i4_bitonic_sort_full_local"),
     bitonic_merge_global_    (program_, "i4_bitonic_merge_global"),
@@ -302,7 +116,9 @@ Sorter::Sorter (cl::Device device) : // The device on which the sorter will work
     max_group_size_ (device.getInfo <CL_DEVICE_MAX_WORK_GROUP_SIZE> ())
 {
     const std::size_t local_size = device.getInfo <CL_DEVICE_LOCAL_MEM_SIZE> ();
-    const std::size_t max_possible_group_size = local_size / (4 * 2 * sizeof (int));
+
+    using data_type = cl_int4;
+    const std::size_t max_possible_group_size = local_size / (2 * sizeof (data_type));
     if (max_group_size_ > max_possible_group_size) {
         max_group_size_ = round_down_pow2 (max_possible_group_size);
     }
@@ -310,57 +126,44 @@ Sorter::Sorter (cl::Device device) : // The device on which the sorter will work
     max_group_size_ = round_down_pow2 (max_group_size_);
 } // Sorter::Sorter (cl::Device device)
 
-uint factorRadix2 (uint *log2L, uint L) {
-    if (!L) {
-        *log2L = 0;
-        return 0;
-    } else {
-        for (*log2L = 0; (L & 1) == 0; L >>= 1, *log2L++)
-        ;
-
-        return L;
-    }
-}
-
 template <>
 void
-Sorter::vect_sort <int> (int* input_data,
-                         std::size_t arrayLength,
-                         uint dir)
+Sorter::vect_sort <int> (int* input_data,       // Data to be sorted
+                         std::size_t data_size, // The size of the data in the number of int
+                         uint dir)              // Direction sort (1 -> /, 0 -> \)
 {
     using data_type = cl_int4;
 
-    if (arrayLength < 2 * sizeof (data_type) / sizeof (input_data[0])) {
-        std::sort (input_data, input_data + arrayLength, [dir = dir] (auto& lhs, auto& rhs) {
-            return (lhs > rhs) != dir;
+    // If array size less then minimum compared item (int4) * 2
+    if (data_size < 2 * sizeof (data_type) / sizeof (input_data[0])) {
+        std::sort (input_data, input_data + data_size, [dir = dir] (auto& lhs, auto& rhs) {
+            return (lhs > rhs) ^ dir;
         });
         return;
     }
 
-    arrayLength /= sizeof (data_type) / sizeof (input_data[0]);
+    data_size /= sizeof (data_type) / sizeof (input_data[0]);
     data_type* data = reinterpret_cast <data_type*> (input_data);
 
-    dir = (dir != 0);
-
-    uint l_buf_size = 1 << 11;
+    uint l_buf_size = 2 * max_group_size_;
 
     cl::LocalSpaceArg local_buf { .size_ = sizeof (data_type) * l_buf_size };
 
-    cl::Buffer buffer (context_, CL_MEM_READ_WRITE, arrayLength * sizeof (data_type));
-    cl::copy (cmd_queue_, data, data + arrayLength, buffer);
+    cl::Buffer buffer (context_, CL_MEM_READ_WRITE, data_size * sizeof (data_type));
+    cl::copy (cmd_queue_, data, data + data_size, buffer);
 
-    if (arrayLength <= l_buf_size) {
-        uint threadCount = arrayLength / 2;
+    if (data_size <= l_buf_size) {
+        uint threadCount = data_size / 2;
 
         cl::NDRange global (threadCount);
         cl::NDRange local (threadCount);
         cl::EnqueueArgs args {cmd_queue_, global, local};
 
-        bitonic_sort_local_ (args, local_buf, buffer, arrayLength, dir);
-        cl::copy (cmd_queue_, buffer, data, data + arrayLength);
+        bitonic_sort_local_ (args, local_buf, buffer, data_size, dir);
+        cl::copy (cmd_queue_, buffer, data, data + data_size);
     } else {
         uint threadCount = l_buf_size / 2;
-        uint blockCount = arrayLength / l_buf_size;
+        uint blockCount = data_size / l_buf_size;
 
         cl::NDRange global (blockCount * threadCount);
         cl::NDRange local (threadCount);
@@ -368,18 +171,18 @@ Sorter::vect_sort <int> (int* input_data,
 
         bitonic_sort_full_local_ (args, local_buf, buffer);
 
-        for (uint size = 2 * l_buf_size; size <= arrayLength; size <<= 1)
+        for (uint size = 2 * l_buf_size; size <= data_size; size <<= 1)
         for (unsigned stride = size / 2; stride > 0; stride >>= 1)
             if (stride >= l_buf_size) {
-                bitonic_merge_global_ (args, buffer, arrayLength, size, stride, dir);
+                bitonic_merge_global_ (args, buffer, data_size, size, stride, dir);
             } else {
-                bitonic_merge_local_ (args, local_buf, buffer, arrayLength, size, dir);
+                bitonic_merge_local_ (args, local_buf, buffer, data_size, size, dir);
                 break;
             }
 
-        cl::copy (cmd_queue_, buffer, data, data + arrayLength);
+        cl::copy (cmd_queue_, buffer, data, data + data_size);
     }
-}
+} // Sorter::vect_sort <int> (int* input_data, std::size_t data_size, uint dir)
 
 void
 testSpeed (unsigned pow2_begin, unsigned pow2_end) {
@@ -435,6 +238,6 @@ testSpeed (unsigned pow2_begin, unsigned pow2_end) {
                   << tab << "time CPU: " <<  std::setw (10) << cpu_time.count () << " mks" << std::endl;
 
     }
-} // testSpeed ()
+} // testSpeed (unsigned pow2_begin, unsigned pow2_end)
 
 } // namespace hidra

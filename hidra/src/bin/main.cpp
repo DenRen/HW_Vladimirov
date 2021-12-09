@@ -3,28 +3,19 @@
 #include <vector>
 #include <random>
 
-#include "mycllib.h"
 #include "cppl.hpp"
 #include "other_func.hpp"
 
 void sort_cin ();
 
-#define TEST_SPEED           // <=== Enable test speed
-// #define DUMP_ALL_DEVICES     // <=== Dump all info about your ocl devices
+// #define TEST_SPEED           // <=== Enable test speed
 
 int
 main (int argc, char* argv[]) {
     #ifdef TEST_SPEED
-    hidra::testSpeed (19, 19);
+    hidra::testSpeed (1, 21);
     return 0;
     #endif // TEST_SPEED
-
-    #ifdef DUMP_ALL_DEVICES
-    hidra::DeviceProvider device_provider;
-    cl::Device device = device_provider.getDefaultDevice ();
-    std::cout << device_provider.dumpAll ();
-    return 0;
-    #endif // DUMP_ALL_DEVICES
 
     sort_cin ();
 }
@@ -39,8 +30,6 @@ sort_cin () {
 
     std::size_t size = 0;
     std::cin >> size;
-
-    std::cout << "size: " << size << std::endl;
 
     std::vector <int> arr;
     arr.reserve (size);

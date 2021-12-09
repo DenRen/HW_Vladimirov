@@ -1,23 +1,76 @@
+#define SORT_INT4(arr, tmp4, res, dir)                          \
+    tmp4 = ((arr).s02 > (arr).s13).s0011;                       \
+    arr = select ((arr).s0123, (arr).s1032, tmp4 ^ (-dir));     \
+                                                                \
+    tmp4 = ((arr).s01 > (arr).s32).s0110;                       \
+    arr = select ((arr).s0123, (arr).s3210, tmp4 ^ (-dir));     \
+                                                                \
+    tmp4 = ((arr).s02 > (arr).s13).s0011;                       \
+    res = select ((arr).s0123, (arr).s1032, tmp4 ^ (-dir));
 
-inline void
-swap (int* first, int* second) {
-    int temp = *first;
-    *first = *second;
-    *second = temp;
+#ifdef ENABLE_TESTING
+__kernel void
+test_sort_int4 (__global __read_write int4* g_arr, int dir) {
+    int4 arr = *g_arr, tmp4;
+    SORT_INT4 (arr, tmp4, *g_arr, dir);
 }
-
-inline void
-swap_if_greater (int* data, int pos_first, int pos_second) {
-    if (data[pos_first] > data[pos_second]) {
-        swap (&data[pos_first], &data[pos_second]);
-    }
-}
+#endif // ENABLE_TESTING
 
 void
-vector_sort_first (__global __read_write int* A, int pos) {
-    pos *= 2;
-    swap_if_greater (A, pos, pos + 1);
-}
+_merge_int8 (int8 arr,   // Set of screws to be sorted
+             int8* res,  // Pointer to write the result
+             int dir)    // Direction sort (0 -> /, 1 -> \)
+{
+    int8 cmp = (arr.s0123 > arr.s7654).s01233210;
+    arr = select (arr, arr.s76543210, cmp ^ (-dir));
+
+    int4 tmp4;
+    SORT_INT4 (arr.lo, tmp4, res->lo, dir);
+    SORT_INT4 (arr.hi, tmp4, res->hi, dir);
+} // _sort_int8 (int8 arr, int8* res, int dir)
+
+void
+_sort_int8 (int8 arr,   // Set of screws to be sorted
+            int8* res,  // Pointer to write the result
+            int dir)    // Direction sort (0 -> /, 1 -> \)
+{
+    int4 tmp4;
+
+    SORT_INT4 (arr.lo, tmp4, arr.lo, dir);
+    SORT_INT4 (arr.hi, tmp4, arr.hi, dir);
+
+    int8 cmp = (arr.s0123 > arr.s7654).s01233210;
+    arr = select (arr, arr.s76543210, cmp ^ (-dir));
+
+    SORT_INT4 (arr.lo, tmp4, res->lo, dir);
+    SORT_INT4 (arr.hi, tmp4, res->hi, dir);
+} // _sort_int8 (int8 arr, int8* res, int dir)
+
+#ifdef ENABLE_TESTING
+__kernel void
+test_sort_int8 (__read_write
+                __global int8* g_arr, // Pointer to the data to be sorted
+                int dir)              // Direction sort (0 -> /, 1 -> \)
+{
+    int8 arr = *g_arr;
+    _sort_int8 (arr, &arr, dir);
+    *g_arr = arr;
+} // test_sort_int8 (__global __read_write int8* g_arr, int dir)
+#endif // ENABLE_TESTING
+
+#define COMP_i4(first, second, dir) {   \
+    int8 __arr = (int8)(first, second); \
+    _sort_int8 (__arr, &__arr, !dir);   \
+    first  = __arr.lo;                  \
+    second = __arr.hi;                  \
+} // #define COMP_i4
+
+#define MERGER_i4(first, second, dir) { \
+    int8 __arr = (int8)(first, second); \
+    _merge_int8 (__arr, &__arr, !dir);  \
+    first  = __arr.lo;                  \
+    second = __arr.hi;                  \
+} // define MERGER_i4
 
 /////////////////////////////////////////////////////////////
 // Bitonic sort:                                           //
@@ -25,67 +78,120 @@ vector_sort_first (__global __read_write int* A, int pos) {
 // https://neerc.ifmo.ru/wiki/index.php?title=Сеть_Бетчера //
 /////////////////////////////////////////////////////////////
 
-// size param is half data size
-// size % 2 == 0
-// pos = [0:size)
-void
-half_filter (int pos, int* data, size_t size) {
-    while (size) {
-        swap_if_greater (data, pos, pos + size);
-        barrier (CLK_LOCAL_MEM_FENCE);
+__kernel void
+i4_bitonic_sort_local (__local  int4* buf_l,
+                       __global int4* buf_g,
+                       uint buf_g_size,
+                       uint dir)
+{
+    const uint l_buf_size = 2 * get_local_size (0);
+    const uint group_id = get_group_id (0);
+    const uint local_id = get_local_id (0);
 
-        size_t half_size = size / 2;
-        if (pos >= half_size) {
-            pos -= half_size;
-            data += size;
+    // Offset to the beginning of subbatch and load data
+    buf_g += group_id * l_buf_size + local_id;
+    buf_l[local_id + 0] = buf_g[0];
+    buf_l[local_id + (l_buf_size / 2)] = buf_g[(l_buf_size / 2)];
+
+    for (uint size = 2; size < buf_g_size; size <<= 1) {
+        // Bitonic merge
+        const uint cur_dir = dir ^ ((local_id & (size / 2)) != 0);
+
+        for (uint stride = size / 2; stride > 0; stride >>= 1) {
+            barrier (CLK_LOCAL_MEM_FENCE);
+            const uint pos = 2 * local_id - (local_id & (stride - 1));
+            COMP_i4 (buf_l[pos + 0], buf_l[pos + stride], cur_dir);
         }
-
-        size = half_size;
     }
-}
 
-// size param is half data size
-void
-unifying_network (int pos, int* data, size_t size) {
-    swap_if_greater (data, pos, 2 * size - pos - 1);
-    barrier (CLK_LOCAL_MEM_FENCE);
-
-    int half_size = size / 2;
-    if (pos < half_size) {
-        half_filter (pos, data, half_size);
-    } else {
-        half_filter (pos - half_size, data + size, half_size);
-    }
-}
-
-__kernel void
-vector_sort (__global __read_write int* A) {
-    int pos = get_global_id (0);
-    int size = get_global_size (0); // Half data size
-
-    vector_sort_first (A, pos); // Micro optimization
-
-    int data_size = 2 * size;
-
-    for (int i = 2; i <= size; i *= 2) {
-        int global_pos = pos % i + (pos / i) * (2 * i);
-        int new_pos = global_pos % (2 * i);
-        int* new_data = A + global_pos - global_pos % i;
-
-        unifying_network (new_pos, new_data, i);
+    for (uint stride = buf_g_size / 2; stride > 0; stride >>= 1) {
         barrier (CLK_LOCAL_MEM_FENCE);
+        const uint pos = 2 * local_id - (local_id & (stride - 1));
+        COMP_i4 (buf_l[pos + 0], buf_l[pos + stride], dir);
     }
-}
 
-// For test ---------------------------------------------------
-__kernel void
-_half_filter (__global __read_write int* data, ulong size) {
-    int pos = get_global_id (0);
-    half_filter (pos, data, size);
-}
+    barrier (CLK_LOCAL_MEM_FENCE);
+    buf_g[0] = buf_l[local_id + 0];
+    buf_g[(l_buf_size / 2)] = buf_l[local_id + (l_buf_size / 2)];
+} // __kernel i4_bitonic_sort_local
 
 __kernel void
-_unifying_network (__global __read_write int* data, ulong size) {
-    int pos = get_global_id (0);
-    unifying_network (pos, data, size);
-}
+i4_bitonic_sort_full_local (__local  int4* buf_l,
+                            __global int4 *buf_g)
+{
+    const uint l_buf_size = 2 * get_local_size (0);
+    const uint group_id = get_group_id (0);
+    const uint local_id = get_local_id (0);
+
+    buf_g += group_id * l_buf_size + local_id;
+    buf_l[local_id + 0] = buf_g[0];
+    buf_l[local_id + (l_buf_size / 2)] = buf_g[(l_buf_size / 2)];
+
+    for (uint size = 2; size < l_buf_size; size <<= 1) {
+        const uint cur_dir = (local_id & (size / 2)) != 0;
+
+        for (uint stride = size / 2; stride > 0; stride >>= 1) {
+            barrier (CLK_LOCAL_MEM_FENCE);
+            const uint pos = 2 * local_id - (local_id & (stride - 1));
+            COMP_i4 (buf_l[pos + 0], buf_l[pos + stride], cur_dir);
+        }
+    }
+
+    const uint cur_dir = group_id & 1;
+    for (uint stride = l_buf_size / 2; stride > 0; stride >>= 1) {
+        barrier (CLK_LOCAL_MEM_FENCE);
+        uint pos = 2 * local_id - (local_id & (stride - 1));
+        COMP_i4 (buf_l[pos + 0], buf_l[pos + stride], cur_dir);
+    }
+
+    barrier (CLK_LOCAL_MEM_FENCE);
+    buf_g[0] = buf_l[local_id + 0];
+    buf_g[(l_buf_size / 2)] = buf_l[local_id + (l_buf_size / 2)];
+} // __kernel i4_bitonic_sort_full_local
+
+__kernel void
+i4_bitonic_merge_global (__global int4* buf_g,
+                         uint buf_g_size,
+                         uint size,
+                         uint stride,
+                         uint dir)
+{
+    const uint cmp_g = get_group_id (0) * get_local_size (0) + get_local_id (0);
+    const uint cmp = cmp_g & (buf_g_size / 2 - 1);
+
+    // Bitonic merge
+    const uint cur_dir = dir ^ ((cmp & (size / 2)) != 0);
+    const uint pos = 2 * cmp_g - (cmp_g & (stride - 1));
+
+    COMP_i4 (buf_g[pos + 0], buf_g[pos + stride], cur_dir);
+} // __kernel i4_bitonic_merge_global
+
+__kernel void
+i4_bitonic_merge_local (__local  int4* buf_l,
+                        __global int4* buf_g,
+                        uint buf_g_size,
+                        uint size,
+                        uint dir)
+{
+    const uint l_buf_size = 2 * get_local_size (0);
+    const uint group_id = get_group_id (0);
+    const uint local_id = get_local_id (0);
+
+    buf_g += group_id * l_buf_size + local_id;
+    buf_l[local_id + 0] = buf_g[0];
+    buf_l[local_id + (l_buf_size / 2)] = buf_g[(l_buf_size / 2)];
+
+    // Bitonic merge
+    uint cmp = (group_id * get_local_size (0) + local_id) & ((buf_g_size / 2) - 1);
+    uint cur_dir = dir ^ ((cmp & (size / 2)) != 0);
+
+    for (uint stride = l_buf_size / 2; stride > 0; stride >>= 1) {
+        barrier (CLK_LOCAL_MEM_FENCE);
+        uint pos = 2 * local_id - (local_id & (stride - 1));
+        MERGER_i4 (buf_l[pos + 0], buf_l[pos + stride], cur_dir);
+    }
+
+    barrier (CLK_LOCAL_MEM_FENCE);
+    buf_g[0] = buf_l[local_id + 0];
+    buf_g[(l_buf_size / 2)] = buf_l[local_id + (l_buf_size / 2)];
+} // __kernel i4_bitonic_merge_local
