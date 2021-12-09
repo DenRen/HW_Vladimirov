@@ -173,7 +173,18 @@ big_vector_sort_i4 (__read_write
     }
 } // big_vector_sort_i4
 
-// --------------------------------
+void
+_merge_int8 (int8 arr,   // Set of screws to be sorted
+             int8* res,  // Pointer to write the result
+             int dir)    // Direction sort (0 -> /, 1 -> \)
+{
+    int8 cmp = (arr.s0123 > arr.s7654).s01233210;
+    arr = select (arr, arr.s76543210, cmp ^ (-dir));
+
+    int4 tmp4;
+    SORT_INT4 (arr.s0123, tmp4, res->s0123, dir);
+    SORT_INT4 (arr.s4567, tmp4, res->s4567, dir);
+} // _sort_int8 (int8 arr, int8* res, int dir)
 
 #define COMP_i4(first, second, dir) {   \
     int8 __arr = (int8)(first, second); \
@@ -182,11 +193,18 @@ big_vector_sort_i4 (__read_write
     second = __arr.hi;                  \
 }
 
+#define MERGER_i4(first, second, dir) { \
+    int8 __arr = (int8)(first, second); \
+    _merge_int8 (__arr, &__arr, !dir);  \
+    first  = __arr.lo;                  \
+    second = __arr.hi;                  \
+}
+
 __kernel void
 i4_bitonic_sort_local (__local int4* buf_l,
-                    __global int4* buf_g,
-                    uint arrayLength,
-                    uint dir)
+                       __global int4* buf_g,
+                       uint arrayLength,
+                       uint dir)
 {
     const uint l_buf_size = 2 * get_local_size (0);
     const uint group_id = get_group_id (0);
@@ -224,7 +242,7 @@ i4_bitonic_sort_local (__local int4* buf_l,
 
 __kernel void
 i4_bitonic_sort_full_local(__local int4* buf_l,
-                        __global int4 *buf_g)
+                           __global int4 *buf_g)
 {
     const uint l_buf_size = 2 * get_local_size (0);
     const uint group_id = get_group_id (0);
@@ -260,9 +278,8 @@ i4_bitonic_sort_full_local(__local int4* buf_l,
     barrier (CLK_LOCAL_MEM_FENCE);
     buf_g[0] = buf_l[local_id + 0];
     buf_g[(l_buf_size / 2)] = buf_l[local_id + (l_buf_size / 2)];
-}
+} // i4_bitonic_sort_full_local
 
-// Bitonic merge iteration for stride >= l_buf_size
 __kernel void
 i4_bitonic_merge_global (__global int4* buf_g,
                       uint arrayLength,
@@ -270,32 +287,28 @@ i4_bitonic_merge_global (__global int4* buf_g,
                       uint stride,
                       uint dir)
 {
-    const uint l_buf_size = 2 * get_local_size (0);
-    const uint group_id = get_group_id (0);
-    const uint local_id = get_local_id (0);
-
-    const uint global_comparatorI = group_id * get_local_size (0) + local_id;
-    const uint comparatorI = global_comparatorI & (arrayLength / 2 - 1);
+    const uint cmp_g = get_group_id (0) * get_local_size (0) + get_local_id (0);
+    const uint cmp = cmp_g & (arrayLength / 2 - 1);
 
     // Bitonic merge
-    const uint ddd = dir ^ ((comparatorI & (size / 2)) != 0);
-    const uint pos = 2 * global_comparatorI - (global_comparatorI & (stride - 1));
+    const uint ddd = dir ^ ((cmp & (size / 2)) != 0);
+    const uint pos = 2 * cmp_g - (cmp_g & (stride - 1));
 
-    int4 keyA = buf_g[pos + 0];
-    int4 keyB = buf_g[pos + stride];
+    int4 left = buf_g[pos + 0];
+    int4 right = buf_g[pos + stride];
 
-    COMP_i4(keyA, keyB, ddd);
+    COMP_i4(left, right, ddd);
 
-    buf_g[pos + 0] = keyA;
-    buf_g[pos + stride] = keyB;
+    buf_g[pos + 0] = left;
+    buf_g[pos + stride] = right;
 }
 
 __kernel void
 i4_bitonic_merge_local(__local int4* buf_l,
-                    __global int4* buf_g,
-                    uint arrayLength,
-                    uint size,
-                    uint dir)
+                       __global int4* buf_g,
+                       uint arrayLength,
+                       uint size,
+                       uint dir)
 {
     const uint l_buf_size = 2 * get_local_size (0);
     const uint group_id = get_group_id (0);
@@ -306,13 +319,13 @@ i4_bitonic_merge_local(__local int4* buf_l,
     buf_l[local_id + (l_buf_size / 2)] = buf_g[(l_buf_size / 2)];
 
     // Bitonic merge
-    uint comparatorI = (group_id * get_local_size (0) + local_id) & ((arrayLength / 2) - 1);
-    uint ddd = dir ^ ((comparatorI & (size / 2)) != 0);
+    uint cmp = (group_id * get_local_size (0) + local_id) & ((arrayLength / 2) - 1);
+    uint ddd = dir ^ ((cmp & (size / 2)) != 0);
 
     for (uint stride = l_buf_size / 2; stride > 0; stride >>= 1) {
         barrier (CLK_LOCAL_MEM_FENCE);
         uint pos = 2 * local_id - (local_id & (stride - 1));
-        COMP_i4(buf_l[pos + 0], buf_l[pos + stride], ddd);
+        MERGER_i4 (buf_l[pos + 0], buf_l[pos + stride], ddd);
     }
 
     barrier (CLK_LOCAL_MEM_FENCE);

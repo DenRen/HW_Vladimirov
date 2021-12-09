@@ -456,8 +456,8 @@ testSpeed () {
     std::random_device rd;
     std::mt19937 mersenne (rd ());
 
-    const size_t min_size_arr = 8 * 1 << 4;
-    const size_t max_size_arr = 8 * 1 << 22;
+    const size_t min_size_arr = 8 * 1 << 19;
+    const size_t max_size_arr = 8 * 1 << 19;
     const size_t repeat = 10;
 
     for (std::size_t size_arr = min_size_arr; size_arr <= max_size_arr; size_arr *= 2) {
