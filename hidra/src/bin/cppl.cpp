@@ -394,10 +394,14 @@ uint factorRadix2 (uint *log2L, uint L) {
 }
 
 void
-Sorter::new_vect_sort (int* data,
+Sorter::new_vect_sort (int* input_data,
                        std::size_t arrayLength,
                        uint dir)
 {
+    using data_type = cl_int4;
+    arrayLength /= sizeof (data_type) / sizeof (input_data[0]);
+    data_type* data = reinterpret_cast <data_type*> (input_data);
+
     if (arrayLength < 2)
         return;
 
@@ -405,9 +409,9 @@ Sorter::new_vect_sort (int* data,
 
     uint l_buf_size = 1 << 10;
 
-    cl::LocalSpaceArg local_buf { .size_ = sizeof (int) * l_buf_size };
+    cl::LocalSpaceArg local_buf { .size_ = sizeof (data_type) * l_buf_size };
 
-    cl::Buffer buffer (context_, CL_MEM_READ_WRITE, arrayLength * sizeof (int));
+    cl::Buffer buffer (context_, CL_MEM_READ_WRITE, arrayLength * sizeof (data_type));
     cl::copy (cmd_queue_, data, data + arrayLength, buffer);
 
     if (arrayLength <= l_buf_size) {
@@ -417,7 +421,7 @@ Sorter::new_vect_sort (int* data,
         cl::NDRange local (threadCount);
         cl::EnqueueArgs args {cmd_queue_, global, local};
 
-        bitonic_sort_local_ (args, local_buf, buffer, buffer, arrayLength, dir);
+        bitonic_sort_local_ (args, local_buf, buffer, arrayLength, dir);
         cl::copy (cmd_queue_, buffer, data, data + arrayLength);
     } else {
         uint threadCount = l_buf_size / 2;
@@ -427,14 +431,14 @@ Sorter::new_vect_sort (int* data,
         cl::NDRange local (threadCount);
         cl::EnqueueArgs args {cmd_queue_, global, local};
 
-        bitonic_sort_full_local_ (args, local_buf, buffer, buffer);
+        bitonic_sort_full_local_ (args, local_buf, buffer);
 
         for (uint size = 2 * l_buf_size; size <= arrayLength; size <<= 1)
         for (unsigned stride = size / 2; stride > 0; stride >>= 1)
             if (stride >= l_buf_size) {
-                bitonic_merge_global_ (args, buffer, buffer, arrayLength, size, stride, dir);
+                bitonic_merge_global_ (args, buffer, arrayLength, size, stride, dir);
             } else {
-                bitonic_merge_local_ (args, local_buf, buffer, buffer, arrayLength, size, dir);
+                bitonic_merge_local_ (args, local_buf, buffer, arrayLength, size, dir);
                 break;
             }
 
@@ -452,7 +456,7 @@ testSpeed () {
     std::mt19937 mersenne (rd ());
 
     const size_t min_size_arr = 8 * 1 << 4;
-    const size_t max_size_arr = 8 * 1 << 20;
+    const size_t max_size_arr = 8 * 1 << 22;
     const size_t repeat = 10;
 
     for (std::size_t size_arr = min_size_arr; size_arr <= max_size_arr; size_arr *= 2) {

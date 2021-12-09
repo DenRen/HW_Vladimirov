@@ -176,20 +176,16 @@ big_vector_sort_i4 (__read_write
 // --------------------------------
 
 inline void
-Comparator (int* keyA, int* keyB, uint dir) {
-    uint t;
-
-    if ((*keyA > *keyB) == dir) {
-        t = *keyA;
-        *keyA = *keyB;
-        *keyB = t;
-    }
+Comparator (int4* keyA, int4* keyB, uint dir) {
+    int8 arr = (int8)(*keyA, *keyB);
+    _sort_int8 (arr, &arr, !dir);
+    *keyA = arr.lo;
+    *keyB = arr.hi;
 }
 
 __kernel void
-bitonicSortShared (__local int* s_key,
-                   __global int* d_DstKey,
-                   __global int* d_SrcKey,
+bitonicSortShared (__local int4* buf_l,
+                   __global int4* buf_g,
                    uint arrayLength,
                    uint dir)
 {
@@ -198,10 +194,9 @@ bitonicSortShared (__local int* s_key,
     const uint local_id = get_local_id (0);
 
     // Offset to the beginning of subbatch and load data
-    d_SrcKey += group_id * l_buf_size + local_id;
-    d_DstKey += group_id * l_buf_size + local_id;
-    s_key[local_id + 0] = d_SrcKey[0];
-    s_key[local_id + (l_buf_size / 2)] = d_SrcKey[(l_buf_size / 2)];
+    buf_g += group_id * l_buf_size + local_id;
+    buf_l[local_id + 0] = buf_g[0];
+    buf_l[local_id + (l_buf_size / 2)] = buf_g[(l_buf_size / 2)];
 
     for (uint size = 2; size < arrayLength; size <<= 1) {
         // Bitonic merge
@@ -210,7 +205,7 @@ bitonicSortShared (__local int* s_key,
         for (uint stride = size / 2; stride > 0; stride >>= 1) {
             barrier (CLK_LOCAL_MEM_FENCE);
             uint pos = 2 * local_id - (local_id & (stride - 1));
-            Comparator(&s_key[pos + 0], &s_key[pos + stride], ddd);
+            Comparator(&buf_l[pos + 0], &buf_l[pos + stride], ddd);
         }
     }
 
@@ -219,38 +214,27 @@ bitonicSortShared (__local int* s_key,
         for (uint stride = arrayLength / 2; stride > 0; stride >>= 1) {
             barrier (CLK_LOCAL_MEM_FENCE);
             uint pos = 2 * local_id - (local_id & (stride - 1));
-            Comparator(&s_key[pos + 0], &s_key[pos + stride], dir);
+            Comparator(&buf_l[pos + 0], &buf_l[pos + stride], dir);
         }
     }
 
     barrier (CLK_LOCAL_MEM_FENCE);
-    d_DstKey[0] = s_key[local_id + 0];
-    d_DstKey[(l_buf_size / 2)] = s_key[local_id + (l_buf_size / 2)];
+    buf_g[0] = buf_l[local_id + 0];
+    buf_g[(l_buf_size / 2)] = buf_l[local_id + (l_buf_size / 2)];
 }
 
-
-////////////////////////////////////////////////////////////////////////////////
-// Bitonic sort kernel for large arrays (not fitting into shared memory)
-////////////////////////////////////////////////////////////////////////////////
-// Bottom-level bitonic sort
-// Almost the same as bitonicSortShared with the exception of
-// even / odd subarrays being sorted in opposite directions
-// Bitonic merge accepts both
-// Ascending | descending or descending | ascending sorted pairs
 __kernel void
-bitonicSortShared1(__local int* s_key,
-                   __global int *d_DstKey,
-                   __global int *d_SrcKey)
+bitonicSortShared1(__local int4* buf_l,
+                   __global int4 *buf_g)
 {
     const uint l_buf_size = 2 * get_local_size (0);
     const uint group_id = get_group_id (0);
     const uint local_id = get_local_id (0);
 
     // Offset to the beginning of subarray and load data
-    d_SrcKey += group_id * l_buf_size + local_id;
-    d_DstKey += group_id * l_buf_size + local_id;
-    s_key[local_id + 0] = d_SrcKey[0];
-    s_key[local_id + (l_buf_size / 2)] = d_SrcKey[(l_buf_size / 2)];
+    buf_g += group_id * l_buf_size + local_id;
+    buf_l[local_id + 0] = buf_g[0];
+    buf_l[local_id + (l_buf_size / 2)] = buf_g[(l_buf_size / 2)];
 
     for (uint size = 2; size < l_buf_size; size <<= 1) {
         // Bitonic merge
@@ -259,7 +243,7 @@ bitonicSortShared1(__local int* s_key,
         for (uint stride = size / 2; stride > 0; stride >>= 1) {
             barrier (CLK_LOCAL_MEM_FENCE);
             uint pos = 2 * local_id - (local_id & (stride - 1));
-            Comparator(&s_key[pos + 0], &s_key[pos + stride], ddd);
+            Comparator(&buf_l[pos + 0], &buf_l[pos + stride], ddd);
         }
     }
 
@@ -270,19 +254,18 @@ bitonicSortShared1(__local int* s_key,
         for (uint stride = l_buf_size / 2; stride > 0; stride >>= 1) {
             barrier (CLK_LOCAL_MEM_FENCE);
             uint pos = 2 * local_id - (local_id & (stride - 1));
-            Comparator(&s_key[pos + 0], &s_key[pos + stride], ddd);
+            Comparator(&buf_l[pos + 0], &buf_l[pos + stride], ddd);
         }
     }
 
     barrier (CLK_LOCAL_MEM_FENCE);
-    d_DstKey[0] = s_key[local_id + 0];
-    d_DstKey[(l_buf_size / 2)] = s_key[local_id + (l_buf_size / 2)];
+    buf_g[0] = buf_l[local_id + 0];
+    buf_g[(l_buf_size / 2)] = buf_l[local_id + (l_buf_size / 2)];
 }
 
 // Bitonic merge iteration for stride >= l_buf_size
 __kernel void
-bitonicMergeGlobal (__global int *d_DstKey,
-                    __global int *d_SrcKey,
+bitonicMergeGlobal (__global int4* buf_g,
                     uint arrayLength,
                     uint size,
                     uint stride,
@@ -299,21 +282,20 @@ bitonicMergeGlobal (__global int *d_DstKey,
     uint ddd = dir ^ ((comparatorI & (size / 2)) != 0);
     uint pos = 2 * global_comparatorI - (global_comparatorI & (stride - 1));
 
-    uint keyA = d_SrcKey[pos + 0];
-    uint keyB = d_SrcKey[pos + stride];
+    int4 keyA = buf_g[pos + 0];
+    int4 keyB = buf_g[pos + stride];
 
     Comparator(&keyA, &keyB, ddd);
 
-    d_DstKey[pos + 0] = keyA;
-    d_DstKey[pos + stride] = keyB;
+    buf_g[pos + 0] = keyA;
+    buf_g[pos + stride] = keyB;
 }
 
 // Combined bitonic merge steps for
 // size > l_buf_size and stride = [1 .. l_buf_size / 2]
 __kernel void
-bitonicMergeShared(__local int* s_key,
-                   __global int *d_DstKey,
-                   __global int *d_SrcKey,
+bitonicMergeShared(__local int4* buf_l,
+                   __global int4* buf_g,
                    uint arrayLength,
                    uint size,
                    uint dir)
@@ -322,10 +304,9 @@ bitonicMergeShared(__local int* s_key,
     const uint group_id = get_group_id (0);
     const uint local_id = get_local_id (0);
 
-    d_SrcKey += group_id * l_buf_size + local_id;
-    d_DstKey += group_id * l_buf_size + local_id;
-    s_key[local_id + 0] = d_SrcKey[0];
-    s_key[local_id + (l_buf_size / 2)] = d_SrcKey[(l_buf_size / 2)];
+    buf_g += group_id * l_buf_size + local_id;
+    buf_l[local_id + 0] = buf_g[0];
+    buf_l[local_id + (l_buf_size / 2)] = buf_g[(l_buf_size / 2)];
 
     // Bitonic merge
     uint comparatorI = (group_id * get_local_size (0) + local_id) & ((arrayLength / 2) - 1);
@@ -334,10 +315,10 @@ bitonicMergeShared(__local int* s_key,
     for (uint stride = l_buf_size / 2; stride > 0; stride >>= 1) {
         barrier (CLK_LOCAL_MEM_FENCE);
         uint pos = 2 * local_id - (local_id & (stride - 1));
-        Comparator(&s_key[pos + 0], &s_key[pos + stride], ddd);
+        Comparator(&buf_l[pos + 0], &buf_l[pos + stride], ddd);
     }
 
     barrier (CLK_LOCAL_MEM_FENCE);
-    d_DstKey[0] = s_key[local_id + 0];
-    d_DstKey[(l_buf_size / 2)] = s_key[local_id + (l_buf_size / 2)];
+    buf_g[0] = buf_l[local_id + 0];
+    buf_g[(l_buf_size / 2)] = buf_l[local_id + (l_buf_size / 2)];
 }

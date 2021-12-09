@@ -34,13 +34,13 @@ class Sorter {
     cl::KernelFunctor <cl::Buffer, cl::LocalSpaceArg, cl_int> sort_i4_;
     cl::KernelFunctor <cl::Buffer, cl::LocalSpaceArg, cl_uint> big_sort_i4_;
 
-    cl::KernelFunctor <cl::LocalSpaceArg, cl::Buffer, cl::Buffer, cl_uint, cl_uint>
+    cl::KernelFunctor <cl::LocalSpaceArg, cl::Buffer, cl_uint, cl_uint>
         bitonic_sort_local_;
-    cl::KernelFunctor <cl::LocalSpaceArg, cl::Buffer, cl::Buffer>
+    cl::KernelFunctor <cl::LocalSpaceArg, cl::Buffer>
         bitonic_sort_full_local_;
-    cl::KernelFunctor <cl::Buffer, cl::Buffer, cl_uint, cl_uint, cl_uint, cl_uint>
+    cl::KernelFunctor <cl::Buffer, cl_uint, cl_uint, cl_uint, cl_uint>
         bitonic_merge_global_;
-    cl::KernelFunctor <cl::LocalSpaceArg, cl::Buffer, cl::Buffer, cl_uint, cl_uint, cl_uint>
+    cl::KernelFunctor <cl::LocalSpaceArg, cl::Buffer, cl_uint, cl_uint, cl_uint>
         bitonic_merge_local_;
 
     uint32_t max_group_size_;
