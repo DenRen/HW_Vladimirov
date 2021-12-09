@@ -34,6 +34,15 @@ class Sorter {
     cl::KernelFunctor <cl::Buffer, cl::LocalSpaceArg, cl_int> sort_i4_;
     cl::KernelFunctor <cl::Buffer, cl::LocalSpaceArg, cl_uint> big_sort_i4_;
 
+    cl::KernelFunctor <cl::LocalSpaceArg, cl::Buffer, cl::Buffer, cl_uint, cl_uint>
+        bitonic_sort_shared_;
+    cl::KernelFunctor <cl::LocalSpaceArg, cl::Buffer, cl::Buffer>
+        bitonic_sort_shared1_;
+    cl::KernelFunctor <cl::Buffer, cl::Buffer, cl_uint, cl_uint, cl_uint, cl_uint>
+        bitonic_merge_global_;
+    cl::KernelFunctor <cl::LocalSpaceArg, cl::Buffer, cl::Buffer, cl_uint, cl_uint, cl_uint>
+        bitonic_merge_shared_;
+
     uint32_t max_group_size_;
 
 public:
@@ -48,6 +57,9 @@ public:
     template <typename T>
     void
     vect_sort (T* data, size_t size);
+
+    void
+    new_vect_sort (int* data, std::size_t arrayLength, uint dir = 1);
 
 }; // class Sorter
 

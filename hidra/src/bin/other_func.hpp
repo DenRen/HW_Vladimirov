@@ -118,9 +118,9 @@ checkEqual (      std::vector <T>& source_vec,
     }
 
     ASSERT_TRUE (sorted_vec == source_vec)
-        << "src: " << copy_src_vec << std::endl
-        << "vec: " << sorted_vec   << std::endl
-        << "ref: " << source_vec   << std::endl
+        << "src: " << copy_src_vec << std::endl << std::endl
+        << "vec: " << sorted_vec   << std::endl << std::endl
+        << "ref: " << source_vec   << std::endl << std::endl
         << "dir: " << dir          << std::endl;
 } // checkEqual (std::vector <T>& source_vec,
   //             const std::vector <T>& sorted_vec, bool dir = false)

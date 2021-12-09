@@ -73,7 +73,7 @@ test_sort_intn (int n,                        // Number ints in intn type (n == 
     cl::Buffer buffer = getBuffer (ctx, vec);
 
     auto save_vec = vec;
-    
+
     cl::NDRange global (1);
     cl::NDRange local (1);
     cl::EnqueueArgs args {ctx.cmd_queue, global, local};
@@ -131,9 +131,9 @@ TEST (TEST_KERNEL, vector_sort_i4) {
             sort_intn (ctx.program, name_kernel_func);
 
         cl::Buffer buffer = getBuffer (ctx, vecs[i]);
-        
+
         const std::size_t num_item_data_block = size / (2 * sizeof (vecs[0][0]));
-        
+
         cl::NDRange global (num_item_data_block);
         cl::NDRange local (global);
         cl::EnqueueArgs args {ctx.cmd_queue, global, local};
@@ -146,3 +146,39 @@ TEST (TEST_KERNEL, vector_sort_i4) {
         checkEqual (save_vecs[i], vecs[i], dir);
     }
 } // TEST (TEST_KERNEL, vector_sort_i4)
+/*
+TEST (TEST_KERNEL, sort_int) {
+    ocl_ctx_t ctx;
+    std::random_device rd;
+    std::mt19937 mersenne (rd ());
+    mersenne.seed (3);
+
+    const std::string name_kernel_func = "sort_int";
+    const std::size_t repeat = 1;
+    const std::size_t size = 1 << 10;
+
+    std::vector <std::vector <int>> vecs;
+    vecs.reserve (repeat);
+    for (std::size_t i = 0; i < repeat; ++i) {
+        vecs.push_back (getRandFillVector <int> (4 * size, mersenne, 30));
+    }
+    auto save_vecs = vecs;
+
+    for (std::size_t i = 0; i < repeat; ++i) {
+        cl::KernelFunctor <cl::Buffer, cl::LocalSpaceArg>
+            sort_int (ctx.program, name_kernel_func);
+
+        cl::Buffer buffer = getBuffer (ctx, vecs[i]);
+
+        cl::NDRange global (size);
+        cl::NDRange local (size);
+        cl::EnqueueArgs args {ctx.cmd_queue, global, local};
+        cl::LocalSpaceArg local_buffer { 4 * size * sizeof (vecs[0][0]) };
+
+        sort_int (args, buffer, local_buffer);
+
+        cl::copy (ctx.cmd_queue, buffer, vecs[i].data (), vecs[i].data () + vecs[i].size ());
+        
+        checkEqual (save_vecs[i], vecs[i]);
+    }
+} // TEST (TEST_KERNEL, sort_int)*/

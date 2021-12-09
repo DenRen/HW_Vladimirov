@@ -30,3 +30,21 @@ TEST (TEST_SORTER, TEST_VECTOR_SORT) {
         }
     }
 } // TEST (TEST_SORTER, TEST_VECTOR_SORT)
+
+TEST (TEST_SORTER, TEST_NEW_VECTOR_SORT) {
+    hidra::DeviceProvider device_provider;
+    cl::Device device = device_provider.getDefaultDevice ();
+    hidra::Sorter sorter (device);
+
+    std::random_device rd;
+    std::mt19937 mersenne (rd ());
+
+    const size_t size = 1 << 10;
+
+    auto vec = getRandFillVector <int> (size, mersenne, 30);
+    auto copy_vec = vec;
+
+    sorter.new_vect_sort (vec.data (), vec.size ());
+
+    checkEqual (copy_vec, vec);
+}

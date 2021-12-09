@@ -9,8 +9,8 @@
 
 void sort_cin ();
 
-// #define TEST_SPEED           // <=== Enable test speed
-// #define DUMP_ALL_DEVICES     // <=== Dump all info about your ocl devices
+#define TEST_SPEED           // <=== Enable test speed
+//  #define DUMP_ALL_DEVICES     // <=== Dump all info about your ocl devices
 
 int
 main (int argc, char* argv[]) {
@@ -53,9 +53,5 @@ sort_cin () {
     // --------------------------------------------------------
 
     sorter.vect_sort (arr);
-    for (const auto& value : arr) {
-        std::cout << value << " ";
-    }
-
-    std::cout << std::endl;
+    std::cout << arr << std::endl;
 }

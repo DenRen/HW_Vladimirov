@@ -25,8 +25,10 @@ DeviceProvider::DeviceProvider (cl_device_type device_type, // Device type (CPU,
 
     for (const auto& platform : platforms) {
         auto platform_version = platform.getInfo <CL_PLATFORM_VERSION> ();
+        auto platform_name = platform.getInfo <CL_PLATFORM_NAME> ();
 
-        if (platform_version.find (version) != decltype (platform_version)::npos) {
+        if (platform_version.find (version) != decltype (platform_version)::npos &&
+            platform_name.find ("NVIDIA") != decltype (platform_name)::npos) {
             std::vector <cl::Device> devices;
 
             platform.getDevices (device_type, &devices);
@@ -48,7 +50,7 @@ DeviceProvider::DeviceProvider (cl_device_type device_type, // Device type (CPU,
 
 static void
 print_words (std::stringstream& stream, // The output stream
-            std::string words,          // Words separated sep
+             std::string words,         // Words separated sep
              int num_tabs = 1,          // Number of indents
              const char sep = ' ')      // Separator symbol
 {
@@ -136,6 +138,13 @@ getAllDeviceInfo (std::stringstream& stream, // The stream where the device info
         PRINT ("Prereferd vector width float",  CL_DEVICE_PREFERRED_VECTOR_WIDTH_FLOAT)
         PRINT ("Prereferd vector width double", CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE)
         << std::endl
+        PRINT ("Native vector width char",   CL_DEVICE_NATIVE_VECTOR_WIDTH_CHAR)
+        PRINT ("Native vector width short",  CL_DEVICE_NATIVE_VECTOR_WIDTH_SHORT)
+        PRINT ("Native vector width int" ,   CL_DEVICE_NATIVE_VECTOR_WIDTH_INT)
+        PRINT ("Native vector width long",   CL_DEVICE_NATIVE_VECTOR_WIDTH_LONG)
+        PRINT ("Native vector width float",  CL_DEVICE_NATIVE_VECTOR_WIDTH_FLOAT)
+        PRINT ("Native vector width double", CL_DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE)
+        << std::endl
         PRINT ("Max clock frequency",    CL_DEVICE_MAX_CLOCK_FREQUENCY)
         PRINT ("Address bits",           CL_DEVICE_ADDRESS_BITS)
         PRINT ("Max read image args",    CL_DEVICE_MAX_READ_IMAGE_ARGS)
@@ -211,9 +220,9 @@ DeviceProvider::dumpAll () {
                    << ":" << std::endl;
             getAllDeviceInfo (stream, device);
         }
-
-        return stream.str ();
     }
+
+    return stream.str ();
 } // DeviceProvider::dumpAll ()
 
 cl::Platform
@@ -282,9 +291,13 @@ Sorter::Sorter (cl::Device device) : // The device on which the sorter will work
     device_ (device),
     context_ (device_),
     cmd_queue_ (context_),
-    program_ (buildProgram (context_, "kernels/sorter_v6.cl")),
+    program_ (buildProgram (context_, "kernels/sorter_v7.cl")),
     sort_i4_ (program_, "vector_sort_i4"),
     big_sort_i4_ (program_, "big_vector_sort_i4"),
+    bitonic_sort_shared_ (program_, "bitonicSortShared"),
+    bitonic_sort_shared1_ (program_, "bitonicSortShared1"),
+    bitonic_merge_global_ (program_, "bitonicMergeGlobal"),
+    bitonic_merge_shared_ (program_, "bitonicMergeShared"),
     max_group_size_ (device.getInfo <CL_DEVICE_MAX_WORK_GROUP_SIZE> ())
 {
     const std::size_t local_size = device.getInfo <CL_DEVICE_LOCAL_MEM_SIZE> ();
@@ -302,7 +315,6 @@ Sorter::vect_sort <int> (int* data,   // Data to be sorted
                          size_t size) // The size of the data in the number of int
 {
     size_t size_block = 2 * 4 * sizeof (int) * max_group_size_;
-
     std::size_t num_int_on_work_item = 8;
 
     // Prepeare size and add_size
@@ -343,12 +355,14 @@ Sorter::vect_sort <int> (int* data,   // Data to be sorted
         sort_i4_ (args, buffer, local_buf, 0);
         cl::copy (cmd_queue_, buffer, data, data + size);
     } else {
-        cl::NDRange global (max_group_size_);
+        std::size_t num_work_group = full_size / size_block;
+
+        cl::NDRange global (/*num_work_group*/ max_group_size_);
         cl::NDRange local (max_group_size_);
         cl::EnqueueArgs args {cmd_queue_, global, local};
 
         cl::LocalSpaceArg local_buf {
-            .size_ = 2 * 4 * sizeof (int) * max_group_size_
+            .size_ = size_block
         };
 
         cl::Buffer buffer (context_, CL_MEM_READ_WRITE, full_size * sizeof (int));
@@ -366,6 +380,71 @@ Sorter::vect_sort <int> (int* data,   // Data to be sorted
         cl::copy (cmd_queue_, buffer, data, data + size);
     }
 } // Sorter::vect_sort <int> (int* data, size_t size)
+
+uint factorRadix2 (uint *log2L, uint L) {
+    if (!L) {
+        *log2L = 0;
+        return 0;
+    } else {
+        for (*log2L = 0; (L & 1) == 0; L >>= 1, *log2L++)
+        ;
+
+        return L;
+    }
+}
+
+void
+Sorter::new_vect_sort (int* data,
+                       std::size_t arrayLength,
+                       uint dir)
+{
+    if (arrayLength < 2)
+        return;
+
+    dir = (dir != 0);
+
+    uint l_buf_size = 1 << 11;
+
+    if (arrayLength <= l_buf_size) {
+        uint threadCount = arrayLength / 2;
+
+        cl::NDRange global (threadCount);
+        cl::NDRange local (threadCount);
+        cl::EnqueueArgs args {cmd_queue_, global, local};
+
+        cl::LocalSpaceArg local_buf { .size_ = 4 * l_buf_size };
+
+        cl::Buffer buffer (context_, CL_MEM_READ_WRITE, arrayLength * sizeof (int));
+        cl::copy (cmd_queue_, data, data + arrayLength, buffer);
+
+        bitonic_sort_shared_ (args, local_buf, buffer, buffer, arrayLength, dir);
+        try {
+            cl::copy (cmd_queue_, buffer, data, data + arrayLength);
+        } catch (cl::Error& exc) {
+            std::cout << exc.what () << ", error code: " << exc.err () << std::endl;
+        }
+    } else {
+        /*
+
+        std::cout << "threadCount: " << threadCount << std::endl;
+        std::cout << "blockCount: " << blockCount << std::endl;
+
+        bitonicSortShared1<<<blockCount, threadCount>>>(d_DstKey, d_SrcKey);
+
+        for (uint size = 2 * l_buf_size; size <= arrayLength; size <<= 1)
+        for (unsigned stride = size / 2; stride > 0; stride >>= 1)
+            if (stride >= l_buf_size) {
+                bitonicMergeGlobal<<<arrayLength / 512, 256>>>(
+                    d_DstKey, d_DstKey, arrayLength, size, stride,
+                    dir);
+            } else {
+                bitonicMergeShared<<<blockCount, threadCount>>>(
+                    d_DstKey, d_DstKey, arrayLength, size, dir);
+                break;
+            }
+        */
+    }
+}
 
 void
 testSpeed () {
@@ -390,18 +469,18 @@ testSpeed () {
         auto copy_vecs = vecs;
 
         // Test GPU
-        auto gpu_begin = std::chrono::steady_clock::now ();
+        auto gpu_begin = std::chrono::high_resolution_clock::now ();
         for (auto& vec : vecs) {
-            sorter.vect_sort (vec.data (), vec.size ());  
+            sorter.vect_sort (vec.data (), vec.size ());
         }
-        auto gpu_end = std::chrono::steady_clock::now ();
+        auto gpu_end = std::chrono::high_resolution_clock::now ();
 
         // Test CPU
-        auto cpu_begin = std::chrono::steady_clock::now ();
+        auto cpu_begin = std::chrono::high_resolution_clock::now ();
         for (auto& vec : copy_vecs) {
             std::sort (vec.begin (), vec.end ());
         }
-        auto cpu_end = std::chrono::steady_clock::now ();
+        auto cpu_end = std::chrono::high_resolution_clock::now ();
 
         for (std::size_t i = 0; i < repeat; ++i) {
             if (copy_vecs[i] != vecs[i]) {
@@ -410,15 +489,15 @@ testSpeed () {
         }
 
         auto to_ns = [] (auto time) {
-            return std::chrono::duration_cast <std::chrono::milliseconds> (time);
+            return std::chrono::duration_cast <std::chrono::nanoseconds> (time);
         };
-        auto gpu_time = to_ns (gpu_end - gpu_begin) / repeat;
-        auto cpu_time = to_ns (cpu_end - cpu_begin) / repeat;
-        
+        auto gpu_time = to_ns (gpu_end - gpu_begin) / repeat / 1000;
+        auto cpu_time = to_ns (cpu_end - cpu_begin) / repeat / 1000;
+
         std::cout << "Size array: " << std::setw (10) << size_arr << std::endl
-                  << tab << "time GPU: " <<  std::setw (10) << gpu_time.count () << std::endl
-                  << tab << "time CPU: " <<  std::setw (10) << cpu_time.count () << std::endl;
-        
+                  << tab << "time GPU: " <<  std::setw (10) << gpu_time.count () << " mks" << std::endl
+                  << tab << "time CPU: " <<  std::setw (10) << cpu_time.count () << " mks" << std::endl;
+
     }
 } // testSpeed ()
 
