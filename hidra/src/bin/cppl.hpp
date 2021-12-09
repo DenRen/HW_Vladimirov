@@ -31,8 +31,6 @@ class Sorter {
     cl::CommandQueue cmd_queue_;
 
     cl::Program program_;
-    cl::KernelFunctor <cl::Buffer, cl::LocalSpaceArg, cl_int> sort_i4_;
-    cl::KernelFunctor <cl::Buffer, cl::LocalSpaceArg, cl_uint> big_sort_i4_;
 
     cl::KernelFunctor <cl::LocalSpaceArg, cl::Buffer, cl_uint, cl_uint>
         bitonic_sort_local_;
@@ -50,16 +48,13 @@ public:
 
     template <typename T>
     void
-    vect_sort (std::vector <T>& vec) {
-        new_vect_sort (vec.data (), vec.size ());
+    vect_sort (std::vector <T>& vec, uint dir = 1) {
+        vect_sort (vec.data (), vec.size (), dir);
     }
 
     template <typename T>
     void
-    vect_sort (T* data, size_t size);
-
-    void
-    new_vect_sort (int* data, std::size_t arrayLength, uint dir = 1);
+    vect_sort (T* data, size_t size, uint dir = 1);
 
 }; // class Sorter
 

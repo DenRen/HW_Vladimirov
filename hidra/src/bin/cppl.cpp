@@ -268,7 +268,9 @@ buildProgram (cl::Context context,           // The context in which the program
 {
     cl::Program program (context, readSource (name_kernel_func));
     try {
-        std::string_view options = "-cl-unsafe-math-optimizations -cl-mad-enable";
+        std::string_view options = "-cl-unsafe-math-optimizations \
+                                    -cl-fast-relaxed-math\
+                                    -cl-mad-enable";
         program.build (options.data ());
     } catch (cl::Error& exc) {
         cl_int buildError = CL_SUCCESS;
@@ -293,8 +295,6 @@ Sorter::Sorter (cl::Device device) : // The device on which the sorter will work
     context_ (device_),
     cmd_queue_ (context_),
     program_ (buildProgram (context_, "kernels/sorter_v7.cl")),
-    sort_i4_                 (program_, "vector_sort_i4"),
-    big_sort_i4_             (program_, "big_vector_sort_i4"),
     bitonic_sort_local_      (program_, "i4_bitonic_sort_local"),
     bitonic_sort_full_local_ (program_, "i4_bitonic_sort_full_local"),
     bitonic_merge_global_    (program_, "i4_bitonic_merge_global"),
@@ -310,78 +310,6 @@ Sorter::Sorter (cl::Device device) : // The device on which the sorter will work
     max_group_size_ = round_down_pow2 (max_group_size_);
 } // Sorter::Sorter (cl::Device device)
 
-template <>
-void
-Sorter::vect_sort <int> (int* data,   // Data to be sorted
-                         size_t size) // The size of the data in the number of int
-{
-    size_t size_block = 2 * 4 * sizeof (int) * max_group_size_;
-    std::size_t num_int_on_work_item = 8;
-
-    // Prepeare size and add_size
-    std::size_t add_size = 0;
-    if (size < num_int_on_work_item) {
-        add_size = num_int_on_work_item - size;
-    } else {
-        unsigned n = std::log2 (2 * size / num_int_on_work_item);
-        while ((1 << n) < size) {
-            add_size = (1 << ++n);
-        }
-        add_size -= size;
-    }
-
-    std::size_t full_size = size + add_size;
-
-    // Number necessary work items
-    std::size_t num_items = full_size / num_int_on_work_item;
-
-    if (num_items <= max_group_size_) {
-        cl::NDRange global (num_items);
-        cl::NDRange local (num_items);
-        cl::EnqueueArgs args {cmd_queue_, global, local};
-
-        cl::LocalSpaceArg local_buf {
-            .size_ = sizeof (int) * full_size
-        };
-
-        cl::Buffer buffer (context_, CL_MEM_READ_WRITE, full_size * sizeof (int));
-        cl::copy (cmd_queue_, data, data + size, buffer);
-
-        if (add_size != 0) {
-            std::vector <int> poison (add_size, INT32_MAX);
-            cmd_queue_.enqueueWriteBuffer (buffer, true, sizeof (int) * size,
-                                           sizeof (int) * add_size, poison.data ());
-        }
-
-        sort_i4_ (args, buffer, local_buf, 0);
-        cl::copy (cmd_queue_, buffer, data, data + size);
-    } else {
-        std::size_t num_work_group = full_size / size_block;
-
-        cl::NDRange global (/*num_work_group*/ max_group_size_);
-        cl::NDRange local (max_group_size_);
-        cl::EnqueueArgs args {cmd_queue_, global, local};
-
-        cl::LocalSpaceArg local_buf {
-            .size_ = size_block
-        };
-
-        cl::Buffer buffer (context_, CL_MEM_READ_WRITE, full_size * sizeof (int));
-        cl::copy (cmd_queue_, data, data + size, buffer);
-
-        std::vector <int> poison (add_size, INT32_MAX);
-        if (add_size != 0) {
-            cmd_queue_.enqueueWriteBuffer (buffer, true, sizeof (int) * size,
-                                           sizeof (int) * add_size, poison.data ());
-        }
-
-        const std::size_t number_blocks = full_size / (4 * max_group_size_);
-        big_sort_i4_ (args, buffer, local_buf, number_blocks);
-
-        cl::copy (cmd_queue_, buffer, data, data + size);
-    }
-} // Sorter::vect_sort <int> (int* data, size_t size)
-
 uint factorRadix2 (uint *log2L, uint L) {
     if (!L) {
         *log2L = 0;
@@ -394,10 +322,11 @@ uint factorRadix2 (uint *log2L, uint L) {
     }
 }
 
+template <>
 void
-Sorter::new_vect_sort (int* input_data,
-                       std::size_t arrayLength,
-                       uint dir)
+Sorter::vect_sort <int> (int* input_data,
+                         std::size_t arrayLength,
+                         uint dir)
 {
     using data_type = cl_int4;
     arrayLength /= sizeof (data_type) / sizeof (input_data[0]);
@@ -456,8 +385,8 @@ testSpeed () {
     std::random_device rd;
     std::mt19937 mersenne (rd ());
 
-    const size_t min_size_arr = 8 * 1 << 19;
-    const size_t max_size_arr = 8 * 1 << 19;
+    const size_t min_size_arr = 8 * 1 << 1;
+    const size_t max_size_arr = 8 * 1 << 22;
     const size_t repeat = 10;
 
     for (std::size_t size_arr = min_size_arr; size_arr <= max_size_arr; size_arr *= 2) {
