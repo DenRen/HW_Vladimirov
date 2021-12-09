@@ -128,9 +128,9 @@ Sorter::Sorter (cl::Device device) : // The device on which the sorter will work
 
 template <>
 void
-Sorter::vect_sort <int> (int* input_data,       // Data to be sorted
-                         std::size_t data_size, // The size of the data in the number of int
-                         uint dir)              // Direction sort (1 -> /, 0 -> \)
+Sorter::sort <int> (int* input_data,       // Data to be sorted
+                    std::size_t data_size, // The size of the data in the number of int
+                    uint dir)              // Direction sort (1 -> /, 0 -> \)
 {
     using data_type = cl_int4;
 
@@ -182,7 +182,7 @@ Sorter::vect_sort <int> (int* input_data,       // Data to be sorted
 
         cl::copy (cmd_queue_, buffer, data, data + data_size);
     }
-} // Sorter::vect_sort <int> (int* input_data, std::size_t data_size, uint dir)
+} // Sorter::sort <int> (int* input_data, std::size_t data_size, uint dir)
 
 void
 testSpeed (unsigned pow2_begin, unsigned pow2_end) {
@@ -209,7 +209,7 @@ testSpeed (unsigned pow2_begin, unsigned pow2_end) {
         // Test GPU
         auto gpu_begin = std::chrono::high_resolution_clock::now ();
         for (auto& vec : vecs) {
-            sorter.vect_sort (vec);
+            sorter.sort (vec);
         }
         auto gpu_end = std::chrono::high_resolution_clock::now ();
 

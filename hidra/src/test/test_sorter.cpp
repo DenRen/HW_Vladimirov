@@ -22,10 +22,10 @@ TEST (TEST_SORTER, TEST_VECTOR_SORT) {
 
         for (std::size_t size_arr = min_size_arr; size_arr <= max_size_arr; size_arr *= 2) {
             for (std::size_t i = 0; i < repeat; ++i) {
-                auto vec = getRandFillVector <int> (size_arr, mersenne);
+                auto vec = getRandFillVector <int> (size_arr, mersenne, 30);
                 auto copy_vec = vec;
 
-                sorter.vect_sort (vec.data (), vec.size ());
+                sorter.sort (vec);
 
                 checkEqual (copy_vec, vec);
             }

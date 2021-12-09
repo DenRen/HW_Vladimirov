@@ -50,13 +50,13 @@ public:
 
     template <typename T>
     void
-    vect_sort (std::vector <T>& vec, uint dir = 1) {
-        vect_sort (vec.data (), vec.size (), dir);
+    sort (std::vector <T>& vec, uint dir = 1) {
+        sort (vec.data (), vec.size (), dir);
     }
 
     template <typename T>
     void
-    vect_sort (T* data, size_t size, uint dir = 1);
+    sort (T* data, size_t size, uint dir = 1);
 
 }; // class Sorter
 

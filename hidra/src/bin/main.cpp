@@ -12,12 +12,18 @@ void sort_cin ();
 
 int
 main (int argc, char* argv[]) {
-    #ifdef TEST_SPEED
-    hidra::testSpeed (1, 21);
-    return 0;
-    #endif // TEST_SPEED
+    try {
+        #ifdef TEST_SPEED
+        hidra::testSpeed (1, 21);
+        return 0;
+        #endif // TEST_SPEED
 
-    sort_cin ();
+        sort_cin ();
+    } catch (cl::Error& exc) {
+        std::cerr 
+            << "Exception!" << std::endl
+            << exc.what () << ", error code: " << exc.err () << std::endl;
+    }
 }
 
 void
@@ -41,6 +47,6 @@ sort_cin () {
 
     // --------------------------------------------------------
 
-    sorter.vect_sort (arr);
+    sorter.sort (arr);
     std::cout << arr << std::endl;
 }

@@ -22,6 +22,18 @@ target_link_libraries (main ${OpenCL_LIBRARY})
 file (COPY src/bin/kernels DESTINATION .)
 
 #######################
+# Test speed
+#######################
+add_executable (test_speed ${BIN_DIR}/main.cpp
+                           ${BIN_DIR}/cppl.cpp)
+add_compile_definitions (TEST_SPEED)
+
+target_include_directories (test_speed PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries (test_speed ${OpenCL_LIBRARY})
+
+file (COPY src/bin/kernels DESTINATION .)
+
+#######################
 # GTest
 #######################
 ADD_SUBDIRECTORY (googletest)
@@ -38,3 +50,4 @@ add_executable (run_tests ${TEST_DIR}/test_sorter.cpp
                           ${BIN_DIR}/cppl.cpp)
 #Link test executable against gtest and gtest_main
 target_link_libraries (run_tests gtest gtest_main ${OpenCL_LIBRARY})
+
