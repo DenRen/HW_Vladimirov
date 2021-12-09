@@ -268,7 +268,8 @@ buildProgram (cl::Context context,           // The context in which the program
 {
     cl::Program program (context, readSource (name_kernel_func));
     try {
-        program.build ();
+        std::string_view options = "-cl-unsafe-math-optimizations -cl-mad-enable";
+        program.build (options.data ());
     } catch (cl::Error& exc) {
         cl_int buildError = CL_SUCCESS;
 
@@ -292,12 +293,12 @@ Sorter::Sorter (cl::Device device) : // The device on which the sorter will work
     context_ (device_),
     cmd_queue_ (context_),
     program_ (buildProgram (context_, "kernels/sorter_v7.cl")),
-    sort_i4_ (program_, "vector_sort_i4"),
-    big_sort_i4_ (program_, "big_vector_sort_i4"),
-    bitonic_sort_local_ (program_, "bitonicSortShared"),
-    bitonic_sort_full_local_ (program_, "bitonicSortShared1"),
-    bitonic_merge_global_ (program_, "bitonicMergeGlobal"),
-    bitonic_merge_local_ (program_, "bitonicMergeShared"),
+    sort_i4_                 (program_, "vector_sort_i4"),
+    big_sort_i4_             (program_, "big_vector_sort_i4"),
+    bitonic_sort_local_      (program_, "i4_bitonic_sort_local"),
+    bitonic_sort_full_local_ (program_, "i4_bitonic_sort_full_local"),
+    bitonic_merge_global_    (program_, "i4_bitonic_merge_global"),
+    bitonic_merge_local_     (program_, "i4_bitonic_merge_local"),
     max_group_size_ (device.getInfo <CL_DEVICE_MAX_WORK_GROUP_SIZE> ())
 {
     const std::size_t local_size = device.getInfo <CL_DEVICE_LOCAL_MEM_SIZE> ();

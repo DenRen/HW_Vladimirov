@@ -175,19 +175,18 @@ big_vector_sort_i4 (__read_write
 
 // --------------------------------
 
-inline void
-Comparator (int4* keyA, int4* keyB, uint dir) {
-    int8 arr = (int8)(*keyA, *keyB);
-    _sort_int8 (arr, &arr, !dir);
-    *keyA = arr.lo;
-    *keyB = arr.hi;
+#define COMP_i4(first, second, dir) {   \
+    int8 __arr = (int8)(first, second); \
+    _sort_int8 (__arr, &__arr, !dir);   \
+    first  = __arr.lo;                  \
+    second = __arr.hi;                  \
 }
 
 __kernel void
-bitonicSortShared (__local int4* buf_l,
-                   __global int4* buf_g,
-                   uint arrayLength,
-                   uint dir)
+i4_bitonic_sort_local (__local int4* buf_l,
+                    __global int4* buf_g,
+                    uint arrayLength,
+                    uint dir)
 {
     const uint l_buf_size = 2 * get_local_size (0);
     const uint group_id = get_group_id (0);
@@ -200,12 +199,12 @@ bitonicSortShared (__local int4* buf_l,
 
     for (uint size = 2; size < arrayLength; size <<= 1) {
         // Bitonic merge
-        uint ddd = dir ^ ((local_id & (size / 2)) != 0);
+        const uint ddd = dir ^ ((local_id & (size / 2)) != 0);
 
         for (uint stride = size / 2; stride > 0; stride >>= 1) {
             barrier (CLK_LOCAL_MEM_FENCE);
-            uint pos = 2 * local_id - (local_id & (stride - 1));
-            Comparator(&buf_l[pos + 0], &buf_l[pos + stride], ddd);
+            const uint pos = 2 * local_id - (local_id & (stride - 1));
+            COMP_i4(buf_l[pos + 0], buf_l[pos + stride], ddd);
         }
     }
 
@@ -213,8 +212,8 @@ bitonicSortShared (__local int4* buf_l,
     {
         for (uint stride = arrayLength / 2; stride > 0; stride >>= 1) {
             barrier (CLK_LOCAL_MEM_FENCE);
-            uint pos = 2 * local_id - (local_id & (stride - 1));
-            Comparator(&buf_l[pos + 0], &buf_l[pos + stride], dir);
+            const uint pos = 2 * local_id - (local_id & (stride - 1));
+            COMP_i4(buf_l[pos + 0], buf_l[pos + stride], dir);
         }
     }
 
@@ -224,8 +223,8 @@ bitonicSortShared (__local int4* buf_l,
 }
 
 __kernel void
-bitonicSortShared1(__local int4* buf_l,
-                   __global int4 *buf_g)
+i4_bitonic_sort_full_local(__local int4* buf_l,
+                        __global int4 *buf_g)
 {
     const uint l_buf_size = 2 * get_local_size (0);
     const uint group_id = get_group_id (0);
@@ -238,23 +237,23 @@ bitonicSortShared1(__local int4* buf_l,
 
     for (uint size = 2; size < l_buf_size; size <<= 1) {
         // Bitonic merge
-        uint ddd = (local_id & (size / 2)) != 0;
+        const uint ddd = (local_id & (size / 2)) != 0;
 
         for (uint stride = size / 2; stride > 0; stride >>= 1) {
             barrier (CLK_LOCAL_MEM_FENCE);
-            uint pos = 2 * local_id - (local_id & (stride - 1));
-            Comparator(&buf_l[pos + 0], &buf_l[pos + stride], ddd);
+            const uint pos = 2 * local_id - (local_id & (stride - 1));
+            COMP_i4(buf_l[pos + 0], buf_l[pos + stride], ddd);
         }
     }
 
     // Odd / even arrays of l_buf_size elements
     // sorted in opposite directions
-    uint ddd = group_id & 1;
+    const uint ddd = group_id & 1;
     {
         for (uint stride = l_buf_size / 2; stride > 0; stride >>= 1) {
             barrier (CLK_LOCAL_MEM_FENCE);
             uint pos = 2 * local_id - (local_id & (stride - 1));
-            Comparator(&buf_l[pos + 0], &buf_l[pos + stride], ddd);
+            COMP_i4(buf_l[pos + 0], buf_l[pos + stride], ddd);
         }
     }
 
@@ -265,40 +264,38 @@ bitonicSortShared1(__local int4* buf_l,
 
 // Bitonic merge iteration for stride >= l_buf_size
 __kernel void
-bitonicMergeGlobal (__global int4* buf_g,
-                    uint arrayLength,
-                    uint size,
-                    uint stride,
-                    uint dir)
+i4_bitonic_merge_global (__global int4* buf_g,
+                      uint arrayLength,
+                      uint size,
+                      uint stride,
+                      uint dir)
 {
     const uint l_buf_size = 2 * get_local_size (0);
     const uint group_id = get_group_id (0);
     const uint local_id = get_local_id (0);
 
-    uint global_comparatorI = group_id * get_local_size (0) + local_id;
-    uint comparatorI = global_comparatorI & (arrayLength / 2 - 1);
+    const uint global_comparatorI = group_id * get_local_size (0) + local_id;
+    const uint comparatorI = global_comparatorI & (arrayLength / 2 - 1);
 
     // Bitonic merge
-    uint ddd = dir ^ ((comparatorI & (size / 2)) != 0);
-    uint pos = 2 * global_comparatorI - (global_comparatorI & (stride - 1));
+    const uint ddd = dir ^ ((comparatorI & (size / 2)) != 0);
+    const uint pos = 2 * global_comparatorI - (global_comparatorI & (stride - 1));
 
     int4 keyA = buf_g[pos + 0];
     int4 keyB = buf_g[pos + stride];
 
-    Comparator(&keyA, &keyB, ddd);
+    COMP_i4(keyA, keyB, ddd);
 
     buf_g[pos + 0] = keyA;
     buf_g[pos + stride] = keyB;
 }
 
-// Combined bitonic merge steps for
-// size > l_buf_size and stride = [1 .. l_buf_size / 2]
 __kernel void
-bitonicMergeShared(__local int4* buf_l,
-                   __global int4* buf_g,
-                   uint arrayLength,
-                   uint size,
-                   uint dir)
+i4_bitonic_merge_local(__local int4* buf_l,
+                    __global int4* buf_g,
+                    uint arrayLength,
+                    uint size,
+                    uint dir)
 {
     const uint l_buf_size = 2 * get_local_size (0);
     const uint group_id = get_group_id (0);
@@ -315,7 +312,7 @@ bitonicMergeShared(__local int4* buf_l,
     for (uint stride = l_buf_size / 2; stride > 0; stride >>= 1) {
         barrier (CLK_LOCAL_MEM_FENCE);
         uint pos = 2 * local_id - (local_id & (stride - 1));
-        Comparator(&buf_l[pos + 0], &buf_l[pos + stride], ddd);
+        COMP_i4(buf_l[pos + 0], buf_l[pos + stride], ddd);
     }
 
     barrier (CLK_LOCAL_MEM_FENCE);
