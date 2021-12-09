@@ -17,6 +17,19 @@ test_sort_int4 (__global __read_write int4* g_arr, int dir) {
 #endif // ENABLE_TESTING
 
 void
+_merge_int8 (int8 arr,   // Set of screws to be sorted
+             int8* res,  // Pointer to write the result
+             int dir)    // Direction sort (0 -> /, 1 -> \)
+{
+    int8 cmp = (arr.s0123 > arr.s7654).s01233210;
+    arr = select (arr, arr.s76543210, cmp ^ (-dir));
+
+    int4 tmp4;
+    SORT_INT4 (arr.lo, tmp4, res->lo, dir);
+    SORT_INT4 (arr.hi, tmp4, res->hi, dir);
+} // _sort_int8 (int8 arr, int8* res, int dir)
+
+void
 _sort_int8 (int8 arr,   // Set of screws to be sorted
             int8* res,  // Pointer to write the result
             int dir)    // Direction sort (0 -> /, 1 -> \)
@@ -45,38 +58,25 @@ test_sort_int8 (__read_write
 } // test_sort_int8 (__global __read_write int8* g_arr, int dir)
 #endif // ENABLE_TESTING
 
-/////////////////////////////////////////////////////////////
-// Bitonic sort:                                           //
-// ------------                                            //
-// https://neerc.ifmo.ru/wiki/index.php?title=Сеть_Бетчера //
-/////////////////////////////////////////////////////////////
-
-void
-_merge_int8 (int8 arr,   // Set of screws to be sorted
-             int8* res,  // Pointer to write the result
-             int dir)    // Direction sort (0 -> /, 1 -> \)
-{
-    int8 cmp = (arr.s0123 > arr.s7654).s01233210;
-    arr = select (arr, arr.s76543210, cmp ^ (-dir));
-
-    int4 tmp4;
-    SORT_INT4 (arr.lo, tmp4, res->lo, dir);
-    SORT_INT4 (arr.hi, tmp4, res->hi, dir);
-} // _sort_int8 (int8 arr, int8* res, int dir)
-
 #define COMP_i4(first, second, dir) {   \
     int8 __arr = (int8)(first, second); \
     _sort_int8 (__arr, &__arr, !dir);   \
     first  = __arr.lo;                  \
     second = __arr.hi;                  \
-}
+} // #define COMP_i4
 
 #define MERGER_i4(first, second, dir) { \
     int8 __arr = (int8)(first, second); \
     _merge_int8 (__arr, &__arr, !dir);  \
     first  = __arr.lo;                  \
     second = __arr.hi;                  \
-}
+} // define MERGER_i4
+
+/////////////////////////////////////////////////////////////
+// Bitonic sort:                                           //
+// ------------                                            //
+// https://neerc.ifmo.ru/wiki/index.php?title=Сеть_Бетчера //
+/////////////////////////////////////////////////////////////
 
 __kernel void
 i4_bitonic_sort_local (__local int4* buf_l,
@@ -113,11 +113,11 @@ i4_bitonic_sort_local (__local int4* buf_l,
     barrier (CLK_LOCAL_MEM_FENCE);
     buf_g[0] = buf_l[local_id + 0];
     buf_g[(l_buf_size / 2)] = buf_l[local_id + (l_buf_size / 2)];
-}
+} // __kernel i4_bitonic_sort_local
 
 __kernel void
-i4_bitonic_sort_full_local(__local int4* buf_l,
-                           __global int4 *buf_g)
+i4_bitonic_sort_full_local (__local int4* buf_l,
+                            __global int4 *buf_g)
 {
     const uint l_buf_size = 2 * get_local_size (0);
     const uint group_id = get_group_id (0);
@@ -147,14 +147,14 @@ i4_bitonic_sort_full_local(__local int4* buf_l,
     barrier (CLK_LOCAL_MEM_FENCE);
     buf_g[0] = buf_l[local_id + 0];
     buf_g[(l_buf_size / 2)] = buf_l[local_id + (l_buf_size / 2)];
-} // i4_bitonic_sort_full_local
+} // __kernel i4_bitonic_sort_full_local
 
 __kernel void
 i4_bitonic_merge_global (__global int4* buf_g,
-                      uint arrayLength,
-                      uint size,
-                      uint stride,
-                      uint dir)
+                         uint arrayLength,
+                         uint size,
+                         uint stride,
+                         uint dir)
 {
     const uint cmp_g = get_group_id (0) * get_local_size (0) + get_local_id (0);
     const uint cmp = cmp_g & (arrayLength / 2 - 1);
@@ -164,14 +164,14 @@ i4_bitonic_merge_global (__global int4* buf_g,
     const uint pos = 2 * cmp_g - (cmp_g & (stride - 1));
 
     COMP_i4 (buf_g[pos + 0], buf_g[pos + stride], cur_dir);
-}
+} // __kernel i4_bitonic_merge_global
 
 __kernel void
-i4_bitonic_merge_local(__local int4* buf_l,
-                       __global int4* buf_g,
-                       uint arrayLength,
-                       uint size,
-                       uint dir)
+i4_bitonic_merge_local (__local  int4* buf_l,
+                        __global int4* buf_g,
+                        uint arrayLength,
+                        uint size,
+                        uint dir)
 {
     const uint l_buf_size = 2 * get_local_size (0);
     const uint group_id = get_group_id (0);
@@ -194,4 +194,4 @@ i4_bitonic_merge_local(__local int4* buf_l,
     barrier (CLK_LOCAL_MEM_FENCE);
     buf_g[0] = buf_l[local_id + 0];
     buf_g[(l_buf_size / 2)] = buf_l[local_id + (l_buf_size / 2)];
-}
+} // __kernel i4_bitonic_merge_local

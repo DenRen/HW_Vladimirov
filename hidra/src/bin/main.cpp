@@ -10,12 +10,12 @@
 void sort_cin ();
 
 #define TEST_SPEED           // <=== Enable test speed
-//  #define DUMP_ALL_DEVICES     // <=== Dump all info about your ocl devices
+// #define DUMP_ALL_DEVICES     // <=== Dump all info about your ocl devices
 
 int
 main (int argc, char* argv[]) {
     #ifdef TEST_SPEED
-    hidra::testSpeed ();
+    hidra::testSpeed (19, 19);
     return 0;
     #endif // TEST_SPEED
 

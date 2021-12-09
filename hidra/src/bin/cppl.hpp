@@ -58,6 +58,6 @@ public:
 
 }; // class Sorter
 
-void testSpeed ();
+void testSpeed (unsigned pow2_begin = 1, unsigned pow2_end = 22);
 
 } // namespace hidra

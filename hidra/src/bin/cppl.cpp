@@ -329,15 +329,20 @@ Sorter::vect_sort <int> (int* input_data,
                          uint dir)
 {
     using data_type = cl_int4;
+
+    if (arrayLength < 2 * sizeof (data_type) / sizeof (input_data[0])) {
+        std::sort (input_data, input_data + arrayLength, [dir = dir] (auto& lhs, auto& rhs) {
+            return (lhs > rhs) != dir;
+        });
+        return;
+    }
+
     arrayLength /= sizeof (data_type) / sizeof (input_data[0]);
     data_type* data = reinterpret_cast <data_type*> (input_data);
 
-    if (arrayLength < 2)
-        return;
-
     dir = (dir != 0);
 
-    uint l_buf_size = 1 << 10;
+    uint l_buf_size = 1 << 11;
 
     cl::LocalSpaceArg local_buf { .size_ = sizeof (data_type) * l_buf_size };
 
@@ -377,7 +382,7 @@ Sorter::vect_sort <int> (int* input_data,
 }
 
 void
-testSpeed () {
+testSpeed (unsigned pow2_begin, unsigned pow2_end) {
     hidra::DeviceProvider device_provider;
     cl::Device device = device_provider.getDefaultDevice ();
     hidra::Sorter sorter (device);
@@ -385,8 +390,8 @@ testSpeed () {
     std::random_device rd;
     std::mt19937 mersenne (rd ());
 
-    const size_t min_size_arr = 8 * 1 << 1;
-    const size_t max_size_arr = 8 * 1 << 22;
+    const size_t min_size_arr = 8 * 1 << pow2_begin;
+    const size_t max_size_arr = 8 * 1 << pow2_end;
     const size_t repeat = 10;
 
     for (std::size_t size_arr = min_size_arr; size_arr <= max_size_arr; size_arr *= 2) {
