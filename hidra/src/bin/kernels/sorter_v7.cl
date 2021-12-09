@@ -176,7 +176,7 @@ big_vector_sort_i4 (__read_write
 // --------------------------------
 
 inline void
-Comparator (uint* keyA, uint* keyB, uint dir) {
+Comparator (int* keyA, int* keyB, uint dir) {
     uint t;
 
     if ((*keyA > *keyB) == dir) {
@@ -187,11 +187,11 @@ Comparator (uint* keyA, uint* keyB, uint dir) {
 }
 
 __kernel void
-bitonicSortShared(__local uint* s_key,
-                  __global uint* d_DstKey,
-                  __global uint* d_SrcKey,
-                  uint arrayLength,
-                  uint dir)
+bitonicSortShared (__local int* s_key,
+                   __global int* d_DstKey,
+                   __global int* d_SrcKey,
+                   uint arrayLength,
+                   uint dir)
 {
     const uint l_buf_size = 2 * get_local_size (0);
     const uint group_id = get_group_id (0);
@@ -238,9 +238,9 @@ bitonicSortShared(__local uint* s_key,
 // Bitonic merge accepts both
 // Ascending | descending or descending | ascending sorted pairs
 __kernel void
-bitonicSortShared1(__local uint* s_key,
-                   __global uint *d_DstKey,
-                   __global uint *d_SrcKey)
+bitonicSortShared1(__local int* s_key,
+                   __global int *d_DstKey,
+                   __global int *d_SrcKey)
 {
     const uint l_buf_size = 2 * get_local_size (0);
     const uint group_id = get_group_id (0);
@@ -281,8 +281,8 @@ bitonicSortShared1(__local uint* s_key,
 
 // Bitonic merge iteration for stride >= l_buf_size
 __kernel void
-bitonicMergeGlobal (__global uint *d_DstKey,
-                    __global uint *d_SrcKey,
+bitonicMergeGlobal (__global int *d_DstKey,
+                    __global int *d_SrcKey,
                     uint arrayLength,
                     uint size,
                     uint stride,
@@ -292,7 +292,7 @@ bitonicMergeGlobal (__global uint *d_DstKey,
     const uint group_id = get_group_id (0);
     const uint local_id = get_local_id (0);
 
-    uint global_comparatorI = group_id * get_num_groups (0) + local_id;
+    uint global_comparatorI = group_id * get_local_size (0) + local_id;
     uint comparatorI = global_comparatorI & (arrayLength / 2 - 1);
 
     // Bitonic merge
@@ -311,9 +311,9 @@ bitonicMergeGlobal (__global uint *d_DstKey,
 // Combined bitonic merge steps for
 // size > l_buf_size and stride = [1 .. l_buf_size / 2]
 __kernel void
-bitonicMergeShared(__local uint* s_key,
-                   __global uint *d_DstKey,
-                   __global uint *d_SrcKey,
+bitonicMergeShared(__local int* s_key,
+                   __global int *d_DstKey,
+                   __global int *d_SrcKey,
                    uint arrayLength,
                    uint size,
                    uint dir)
@@ -328,7 +328,7 @@ bitonicMergeShared(__local uint* s_key,
     s_key[local_id + (l_buf_size / 2)] = d_SrcKey[(l_buf_size / 2)];
 
     // Bitonic merge
-    uint comparatorI = (group_id * get_num_groups (0) + local_id) & ((arrayLength / 2) - 1);
+    uint comparatorI = (group_id * get_local_size (0) + local_id) & ((arrayLength / 2) - 1);
     uint ddd = dir ^ ((comparatorI & (size / 2)) != 0);
 
     for (uint stride = l_buf_size / 2; stride > 0; stride >>= 1) {

@@ -294,10 +294,10 @@ Sorter::Sorter (cl::Device device) : // The device on which the sorter will work
     program_ (buildProgram (context_, "kernels/sorter_v7.cl")),
     sort_i4_ (program_, "vector_sort_i4"),
     big_sort_i4_ (program_, "big_vector_sort_i4"),
-    bitonic_sort_shared_ (program_, "bitonicSortShared"),
-    bitonic_sort_shared1_ (program_, "bitonicSortShared1"),
+    bitonic_sort_local_ (program_, "bitonicSortShared"),
+    bitonic_sort_full_local_ (program_, "bitonicSortShared1"),
     bitonic_merge_global_ (program_, "bitonicMergeGlobal"),
-    bitonic_merge_shared_ (program_, "bitonicMergeShared"),
+    bitonic_merge_local_ (program_, "bitonicMergeShared"),
     max_group_size_ (device.getInfo <CL_DEVICE_MAX_WORK_GROUP_SIZE> ())
 {
     const std::size_t local_size = device.getInfo <CL_DEVICE_LOCAL_MEM_SIZE> ();
@@ -403,7 +403,12 @@ Sorter::new_vect_sort (int* data,
 
     dir = (dir != 0);
 
-    uint l_buf_size = 1 << 11;
+    uint l_buf_size = 1 << 10;
+
+    cl::LocalSpaceArg local_buf { .size_ = sizeof (int) * l_buf_size };
+
+    cl::Buffer buffer (context_, CL_MEM_READ_WRITE, arrayLength * sizeof (int));
+    cl::copy (cmd_queue_, data, data + arrayLength, buffer);
 
     if (arrayLength <= l_buf_size) {
         uint threadCount = arrayLength / 2;
@@ -412,37 +417,28 @@ Sorter::new_vect_sort (int* data,
         cl::NDRange local (threadCount);
         cl::EnqueueArgs args {cmd_queue_, global, local};
 
-        cl::LocalSpaceArg local_buf { .size_ = 4 * l_buf_size };
-
-        cl::Buffer buffer (context_, CL_MEM_READ_WRITE, arrayLength * sizeof (int));
-        cl::copy (cmd_queue_, data, data + arrayLength, buffer);
-
-        bitonic_sort_shared_ (args, local_buf, buffer, buffer, arrayLength, dir);
-        try {
-            cl::copy (cmd_queue_, buffer, data, data + arrayLength);
-        } catch (cl::Error& exc) {
-            std::cout << exc.what () << ", error code: " << exc.err () << std::endl;
-        }
+        bitonic_sort_local_ (args, local_buf, buffer, buffer, arrayLength, dir);
+        cl::copy (cmd_queue_, buffer, data, data + arrayLength);
     } else {
-        /*
+        uint threadCount = l_buf_size / 2;
+        uint blockCount = arrayLength / l_buf_size;
 
-        std::cout << "threadCount: " << threadCount << std::endl;
-        std::cout << "blockCount: " << blockCount << std::endl;
+        cl::NDRange global (blockCount * threadCount);
+        cl::NDRange local (threadCount);
+        cl::EnqueueArgs args {cmd_queue_, global, local};
 
-        bitonicSortShared1<<<blockCount, threadCount>>>(d_DstKey, d_SrcKey);
+        bitonic_sort_full_local_ (args, local_buf, buffer, buffer);
 
         for (uint size = 2 * l_buf_size; size <= arrayLength; size <<= 1)
         for (unsigned stride = size / 2; stride > 0; stride >>= 1)
             if (stride >= l_buf_size) {
-                bitonicMergeGlobal<<<arrayLength / 512, 256>>>(
-                    d_DstKey, d_DstKey, arrayLength, size, stride,
-                    dir);
+                bitonic_merge_global_ (args, buffer, buffer, arrayLength, size, stride, dir);
             } else {
-                bitonicMergeShared<<<blockCount, threadCount>>>(
-                    d_DstKey, d_DstKey, arrayLength, size, dir);
+                bitonic_merge_local_ (args, local_buf, buffer, buffer, arrayLength, size, dir);
                 break;
             }
-        */
+
+        cl::copy (cmd_queue_, buffer, data, data + arrayLength);
     }
 }
 
@@ -471,7 +467,7 @@ testSpeed () {
         // Test GPU
         auto gpu_begin = std::chrono::high_resolution_clock::now ();
         for (auto& vec : vecs) {
-            sorter.vect_sort (vec.data (), vec.size ());
+            sorter.vect_sort (vec);
         }
         auto gpu_end = std::chrono::high_resolution_clock::now ();
 
@@ -494,7 +490,8 @@ testSpeed () {
         auto gpu_time = to_ns (gpu_end - gpu_begin) / repeat / 1000;
         auto cpu_time = to_ns (cpu_end - cpu_begin) / repeat / 1000;
 
-        std::cout << "Size array: " << std::setw (10) << size_arr << std::endl
+        std::cout << "Size array: " << std::setw (10) << size_arr
+                  << std::setw (12) << "C/G: " << (double)cpu_time.count () / gpu_time.count () << std::endl
                   << tab << "time GPU: " <<  std::setw (10) << gpu_time.count () << " mks" << std::endl
                   << tab << "time CPU: " <<  std::setw (10) << cpu_time.count () << " mks" << std::endl;
 
