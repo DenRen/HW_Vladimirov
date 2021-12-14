@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.0.0)
 project (main VERSION 0.1.0)
 
 set (CMAKE_CXX_STANDARD 17)
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Werror")
 
 # Handle OpenCL
 find_package(OpenCL REQUIRED)
@@ -24,9 +24,8 @@ file (COPY src/bin/kernels DESTINATION .)
 #######################
 # Test speed
 #######################
-add_executable (test_speed ${BIN_DIR}/main.cpp
+add_executable (test_speed ${BIN_DIR}/test_speed.cpp
                            ${BIN_DIR}/cppl.cpp)
-add_compile_definitions (TEST_SPEED)
 
 target_include_directories (test_speed PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries (test_speed ${OpenCL_LIBRARY})

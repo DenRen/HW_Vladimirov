@@ -8,7 +8,7 @@
 #include <random>
 
 TEST (TEST_SORTER, TEST_VECTOR_SORT) {
-    try {
+    // try {
         hidra::DeviceProvider device_provider;
         cl::Device device = device_provider.getDefaultDevice ();
         hidra::Sorter sorter (device);
@@ -30,8 +30,8 @@ TEST (TEST_SORTER, TEST_VECTOR_SORT) {
                 checkEqual (copy_vec, vec);
             }
         }
-    } catch (cl::Error& exc) {
-        std::cout << exc.what () << ", error code: " << exc.err () << std::endl;
-        throw;
-    }
+    // } catch (cl::Error& exc) {
+    //     std::cout << exc.what () << ", error code: " << exc.err () << std::endl;
+    //     throw;
+    // }
 } // TEST (TEST_SORTER, TEST_VECTOR_SORT)

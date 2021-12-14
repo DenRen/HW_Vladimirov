@@ -49,13 +49,13 @@ public:
     Sorter (cl::Device device);
 
     template <typename T>
-    void
+    decltype (cl::Event ().getProfilingInfo <CL_PROFILING_COMMAND_START> ())
     sort (std::vector <T>& vec, uint dir = 1) {
-        sort (vec.data (), vec.size (), dir);
+        return sort (vec.data (), vec.size (), dir);
     }
 
     template <typename T>
-    void
+    decltype (cl::Event ().getProfilingInfo <CL_PROFILING_COMMAND_START> ())
     sort (T* data, size_t size, uint dir = 1);
 
 }; // class Sorter

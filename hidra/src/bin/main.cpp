@@ -8,16 +8,9 @@
 
 void sort_cin ();
 
-// #define TEST_SPEED           // <=== Enable test speed
-
 int
 main (int argc, char* argv[]) {
     try {
-        #ifdef TEST_SPEED
-        hidra::testSpeed (1, 21);
-        return 0;
-        #endif // TEST_SPEED
-
         sort_cin ();
     } catch (cl::Error& exc) {
         std::cerr 

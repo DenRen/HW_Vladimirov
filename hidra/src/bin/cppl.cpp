@@ -107,7 +107,7 @@ buildProgram (cl::Context context,           // The context in which the program
 Sorter::Sorter (cl::Device device) : // The device on which the sorter will work
     device_ (device),
     context_ (device_),
-    cmd_queue_ (context_),
+    cmd_queue_ (context_, CL_QUEUE_PROFILING_ENABLE),
     program_ (buildProgram (context_, "kernels/sorter.cl")),
     bitonic_sort_local_      (program_, "i4_bitonic_sort_local"),
     bitonic_sort_full_local_ (program_, "i4_bitonic_sort_full_local"),
@@ -126,8 +126,14 @@ Sorter::Sorter (cl::Device device) : // The device on which the sorter will work
     max_group_size_ = round_down_pow2 (max_group_size_);
 } // Sorter::Sorter (cl::Device device)
 
+auto get_delta_time (cl::Event event) {
+    event.wait ();
+    return event.getProfilingInfo <CL_PROFILING_COMMAND_END> () - 
+           event.getProfilingInfo <CL_PROFILING_COMMAND_START> ();
+}
+
 template <>
-void
+decltype (cl::Event ().getProfilingInfo <CL_PROFILING_COMMAND_START> ())
 Sorter::sort <int> (int* input_data,       // Data to be sorted
                     std::size_t data_size, // The size of the data in the number of int
                     uint dir)              // Direction sort (1 -> /, 0 -> \)
@@ -139,7 +145,7 @@ Sorter::sort <int> (int* input_data,       // Data to be sorted
         std::sort (input_data, input_data + data_size, [dir = dir] (auto& lhs, auto& rhs) {
             return (lhs > rhs) ^ dir;
         });
-        return;
+        return 0;
     }
 
     data_size /= sizeof (data_type) / sizeof (input_data[0]);
@@ -152,6 +158,8 @@ Sorter::sort <int> (int* input_data,       // Data to be sorted
     cl::Buffer buffer (context_, CL_MEM_READ_WRITE, data_size * sizeof (data_type));
     cl::copy (cmd_queue_, data, data + data_size, buffer);
 
+    decltype (cl::Event ().getProfilingInfo <CL_PROFILING_COMMAND_START> ()) timeKernel = 0;
+
     if (data_size <= l_buf_size) {
         uint threadCount = data_size / 2;
 
@@ -159,7 +167,8 @@ Sorter::sort <int> (int* input_data,       // Data to be sorted
         cl::NDRange local (threadCount);
         cl::EnqueueArgs args {cmd_queue_, global, local};
 
-        bitonic_sort_local_ (args, local_buf, buffer, data_size, dir);
+        timeKernel += get_delta_time (
+        bitonic_sort_local_ (args, local_buf, buffer, data_size, dir));
         cl::copy (cmd_queue_, buffer, data, data + data_size);
     } else {
         uint threadCount = l_buf_size / 2;
@@ -169,19 +178,22 @@ Sorter::sort <int> (int* input_data,       // Data to be sorted
         cl::NDRange local (threadCount);
         cl::EnqueueArgs args {cmd_queue_, global, local};
 
-        bitonic_sort_full_local_ (args, local_buf, buffer);
-
+        timeKernel += get_delta_time (bitonic_sort_full_local_ (args, local_buf, buffer));
         for (uint size = 2 * l_buf_size; size <= data_size; size <<= 1)
         for (unsigned stride = size / 2; stride > 0; stride >>= 1)
             if (stride >= l_buf_size) {
-                bitonic_merge_global_ (args, buffer, data_size, size, stride, dir);
+                timeKernel += get_delta_time (
+                bitonic_merge_global_ (args, buffer, data_size, size, stride, dir));
             } else {
-                bitonic_merge_local_ (args, local_buf, buffer, data_size, size, dir);
+                timeKernel += get_delta_time (
+                bitonic_merge_local_ (args, local_buf, buffer, data_size, size, dir));
                 break;
             }
 
         cl::copy (cmd_queue_, buffer, data, data + data_size);
     }
+
+    return timeKernel;
 } // Sorter::sort <int> (int* input_data, std::size_t data_size, uint dir)
 
 void
@@ -208,8 +220,9 @@ testSpeed (unsigned pow2_begin, unsigned pow2_end) {
 
         // Test GPU
         auto gpu_begin = std::chrono::high_resolution_clock::now ();
+        decltype (sorter.sort (vecs[0])) gpu_kernel_time = 0;
         for (auto& vec : vecs) {
-            sorter.sort (vec);
+            gpu_kernel_time += sorter.sort (vec);
         }
         auto gpu_end = std::chrono::high_resolution_clock::now ();
 
@@ -229,14 +242,21 @@ testSpeed (unsigned pow2_begin, unsigned pow2_end) {
         auto to_ns = [] (auto time) {
             return std::chrono::duration_cast <std::chrono::nanoseconds> (time);
         };
-        auto gpu_time = to_ns (gpu_end - gpu_begin) / repeat / 1000;
-        auto cpu_time = to_ns (cpu_end - cpu_begin) / repeat / 1000;
 
-        std::cout << "Size array: " << std::setw (10) << size_arr
-                  << std::setw (12) << "C/G: " << (double)cpu_time.count () / gpu_time.count () << std::endl
-                  << tab << "time GPU: " <<  std::setw (10) << gpu_time.count () << " mks" << std::endl
-                  << tab << "time CPU: " <<  std::setw (10) << cpu_time.count () << " mks" << std::endl;
+        auto time_coef = repeat * 1000;
+        auto gpu_time = to_ns (gpu_end - gpu_begin) / time_coef;
+        auto cpu_time = to_ns (cpu_end - cpu_begin) / time_coef;
+        gpu_kernel_time /= time_coef;
 
+        std::cout.setf (std::ios::fixed);
+        std::cout.precision (2);
+
+        std::cout << "Size array: " << std::setw (10) << size_arr << " ints"
+                  << std::setw (14) << "C/G: " << 100.0 * cpu_time.count () / gpu_time.count () << "%" << std::endl
+                  << tab << "time GPU:    " <<  std::setw (10) << gpu_time.count () << " mks" << std::endl
+                  << tab << "time Kernel: " <<  std::setw (10) << gpu_kernel_time   << " mks"
+                  << " K/G: " << 100.0 * gpu_kernel_time / gpu_time.count () << "%" << std::endl
+                  << tab << "time CPU:    " <<  std::setw (10) << cpu_time.count () << " mks" << std::endl << std::endl;
     }
 } // testSpeed (unsigned pow2_begin, unsigned pow2_end)
 
