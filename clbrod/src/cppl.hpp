@@ -67,5 +67,6 @@ buildProgram (cl::Context context,           // The context in which the program
 void testSpeed (unsigned pow2_begin = 1, unsigned pow2_end = 22);
 
 const char *getErrorString (cl_int error);
+void printError (cl::Error& error);
 
 } // namespace hidra

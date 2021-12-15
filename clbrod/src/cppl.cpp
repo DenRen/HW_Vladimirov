@@ -337,4 +337,9 @@ switch(error){
     }
 }
 
+void printError (cl::Error& error) {
+    std::cout << error.what () << ", error code: " << error.err ()
+              << " => " << hidra::getErrorString (error.err ()) << std::endl;
+}
+
 } // namespace hidra
