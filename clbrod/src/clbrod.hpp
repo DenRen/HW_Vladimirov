@@ -25,16 +25,25 @@ class FractalDrawer : protected ClAccelerator {
     using ClAccelerator::cmd_queue_;
     using ClAccelerator::program_;
     
+    cl::KernelFunctor <cl::Buffer, float, float, float, sf::Vector2f, int>
+        kernelMandelbrod;
     cl::KernelFunctor <cl::Buffer, float, float, float, int>
-        drawMandelbrod;
+        kernelMandelbrod3;
 
     std::vector <sf::Vertex> verts_;
     sf::Vector2u size_;
 
 public:
 
-    FractalDrawer (const cl::Device& device, sf::Vector2u size);
-    void draw (sf::RenderTarget& target, const sf::Vector3f& pos);
+    FractalDrawer (const cl::Device& device,
+                   sf::Vector2u size);
+    void drawMandelbrod (sf::RenderTarget& target,
+                         const sf::Vector3f& pos,
+                         const sf::Vector2f& C,
+                         int count_iters = 1000);
+    void drawMandelbrod3 (sf::RenderTarget& target,
+                          const sf::Vector3f& pos,
+                          int count_iters = 100);
 };
 
 } // namespace clbrod

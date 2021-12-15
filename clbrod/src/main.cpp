@@ -88,13 +88,20 @@ int main () {
     }
 }
 
+enum class QUALITY : unsigned {
+    HD = 720,
+    FHD = 1080
+};
+
 int drawFractal () {
     hidra::DeviceProvider deviceProvider;
     auto device = deviceProvider.getDefaultDevice ();
 
-    clbrod::FractalDrawer drawer (device, sf::Vector2u (1280, 720));
+    auto quality = QUALITY::FHD;
 
-    sf::RenderWindow window (sf::VideoMode (1280, 720), "Fractal");
+    sf::RenderWindow window (sf::VideoMode ((int) quality * 16 / 9, (int) quality), "Fractal");
+
+    clbrod::FractalDrawer drawer (device, window.getSize ());
 
     sf::RenderTexture target;
     if (!target.create (window.getSize ().x, window.getSize ().y)) {
@@ -104,18 +111,20 @@ int drawFractal () {
     std::vector <sf::Vertex> verts (target.getSize ().x * target.getSize ().y);
 
     sf::Vector3f pos (0, 0, 1);
+    sf::Vector2f C (0, 0);
 
     sf::Clock timer;
     timer.restart ();
 
+    sf::Color colorLine (255, 255, 255, 100);
     sf::Vertex grid_x[] = {
-        sf::Vertex (sf::Vector2f (window.getSize ().x / 2, 0), sf::Color (255, 255, 255, 20)),
-        sf::Vertex (sf::Vector2f (window.getSize ().x / 2, window.getSize ().y), sf::Color (255, 255, 255, 20))
+        sf::Vertex (sf::Vector2f (window.getSize ().x / 2, 0), colorLine),
+        sf::Vertex (sf::Vector2f (window.getSize ().x / 2, window.getSize ().y), colorLine)
     };
 
     sf::Vertex grid_y[] = {
-        sf::Vertex (sf::Vector2f (0, window.getSize ().y / 2), sf::Color (255, 255, 255, 20)),
-        sf::Vertex (sf::Vector2f (window.getSize ().x, window.getSize ().y / 2), sf::Color (255, 255, 255, 20))
+        sf::Vertex (sf::Vector2f (0, window.getSize ().y / 2), colorLine),
+        sf::Vertex (sf::Vector2f (window.getSize ().x, window.getSize ().y / 2), colorLine)
     };
 
     sf::Event event;
@@ -160,6 +169,19 @@ int drawFractal () {
                             printPosition (pos);
                             break;
 
+                        case sf::Keyboard::D:
+                            C.x += 0.02;
+                            std::cout << "C: " << C.x << std::endl;
+                            break;
+                        case sf::Keyboard::A:
+                            C.x -= 0.02;
+                            break;
+                        case sf::Keyboard::W:
+                            C.y += 0.02;
+                            break;
+                        case sf::Keyboard::S:
+                            C.y -= 0.02;
+                            break;
                         default:
                             break;
                     }
@@ -168,7 +190,7 @@ int drawFractal () {
             }
         }
 
-        drawer.draw (target, pos);
+        drawer.drawMandelbrod (target, pos, C);
         // drawFractal <double> (target, verts, pos);
 
         window.clear ();

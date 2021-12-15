@@ -85,7 +85,7 @@ buildProgram (cl::Context context,           // The context in which the program
         std::string_view options = "-cl-unsafe-math-optimizations \
                                     -cl-fast-relaxed-math\
                                     -cl-mad-enable";
-        program.build (options.data ());
+        program.build (/*options.data ()*/);
     } catch (cl::Error& exc) {
         cl_int buildError = CL_SUCCESS;
 
