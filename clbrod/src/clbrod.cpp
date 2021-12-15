@@ -17,9 +17,9 @@ FractalDrawer::FractalDrawer (const cl::Device& device,
     verts_ (size.x * size.y),
     size_ (size)
 {
-    kernels.emplace_back ("Mandelbrod",  program_, "drawMandelbrod");
+    kernels.emplace_back ("Mandelbrod2", program_,"drawMandelbrod2");
     kernels.emplace_back ("Mandelbrod3", program_, "drawMandelbrod3");
-    kernels.emplace_back ("Julia",  program_, "drawJulia");
+    kernels.emplace_back ("Julia2", program_, "drawJulia2");
     kernels.emplace_back ("Julia3", program_, "drawJulia3");
 }
 

@@ -16,15 +16,41 @@ struct Vertex {
     struct Vector2f texCoords;
 };
 
+void fillVertex (__global struct Vertex* vertex,
+                 uint ix,
+                 uint iy,
+                 int count_iters)
+{
+    struct Vertex tmp = {
+        .pos = {
+            .x = ix,
+            .y = iy
+        },
+
+        .color = {
+            .r = 25.5 * count_iters * 0.1,
+            .g = 25.5 * count_iters * 0.4,
+            .b = 25.5 * count_iters * 0.9,
+            .a = 255
+        }
+    };   
+
+    *vertex = tmp;
+}
+
 inline void
-calcMandelbrod (float x_0,
+calcMandelbrod2 (float x_0,
                 float y_0,
                 struct Vector2f C,
                 int count_iters,
+                int is_mand,
                 int* res)
 {
     float x = x_0, y = y_0;
     float tmp_x = 0, tmp_y = 0;
+
+    x_0 *= is_mand;
+    y_0 *= is_mand;
 
     while (count_iters--) {
         tmp_x = x * x - y * y + x_0 + C.x;
@@ -41,10 +67,10 @@ calcMandelbrod (float x_0,
 
     *res = 0;
     return;
-} // calcMandelbrod
+} // calcMandelbrod2
 
 __kernel void
-drawMandelbrod (__global struct Vertex* verts,
+drawMandelbrod2 (__global struct Vertex* verts,
                 float scale_factor,
                 float shift_x,
                 float shift_y,
@@ -57,56 +83,13 @@ drawMandelbrod (__global struct Vertex* verts,
     float x_0 = scale_factor * ix + shift_x;
     float y_0 = scale_factor * iy + shift_y;
 
-    calcMandelbrod (x_0, y_0, C, count_iters, &count_iters);
+    calcMandelbrod2 (x_0, y_0, C, count_iters, 1, &count_iters);
 
-    // count_iters *= 255;
-
-    struct Vertex vertex = {
-        .pos = {
-            .x = ix,
-            .y = iy
-        },
-
-        .color = {
-            .r = 25.5 * count_iters * 0.1,
-            .g = 25.5 * count_iters * 0.4,
-            .b = 25.5 * count_iters * 0.9,
-            .a = 255
-        }
-    };
-
-    verts[ix * get_global_size (1) + iy] = vertex;
+    fillVertex (&verts[ix * get_global_size (1) + iy], ix, iy, count_iters);
 } // drawMandelbrod
 
-inline void
-calcJulia (float x_0,
-           float y_0,
-           struct Vector2f C,
-           int count_iters,
-           int* res)
-{
-    float x = x_0, y = y_0;
-    float tmp_x = 0, tmp_y = 0;
-
-    while (count_iters--) {
-        tmp_x = x * x - y * y + C.x;
-        tmp_y = 2 * x * y + C.y;
-
-        x = tmp_x;
-        y = tmp_y;
-
-        if ((x * x + y * y) > 4) {
-            *res = count_iters;
-            return;
-        }
-    }
-
-    *res = 0;
-    return;
-} // calcJulia
-
 __kernel void
-drawJulia (__global struct Vertex* verts,
+drawJulia2 (__global struct Vertex* verts,
            float scale_factor,
            float shift_x,
            float shift_y,
@@ -119,25 +102,9 @@ drawJulia (__global struct Vertex* verts,
     float x_0 = scale_factor * ix + shift_x;
     float y_0 = scale_factor * iy + shift_y;
 
-    calcJulia (x_0, y_0, C, count_iters, &count_iters);
+    calcMandelbrod2 (x_0, y_0, C, count_iters, 0, &count_iters);
 
-    // count_iters *= 255;
-
-    struct Vertex vertex = {
-        .pos = {
-            .x = ix,
-            .y = iy
-        },
-
-        .color = {
-            .r = 25.5 * count_iters * 0.1,
-            .g = 25.5 * count_iters * 0.4,
-            .b = 25.5 * count_iters * 0.9,
-            .a = 255
-        }
-    };
-
-    verts[ix * get_global_size (1) + iy] = vertex;
+    fillVertex (&verts[ix * get_global_size (1) + iy], ix, iy, count_iters);
 } // drawJulia
 
 inline void
@@ -145,10 +112,14 @@ calcMandelbrod3 (float x_0,
                  float y_0,
                  struct Vector2f C,
                  int count_iters,
+                 int is_mand,
                  int* res)
 {
     float x = x_0, y = y_0;
     float tmp_x = 0, tmp_y = 0;
+
+    x_0 *= is_mand;
+    y_0 *= is_mand;
 
     while (count_iters--) {
         tmp_x = x*x*x - 3 * x * y*y + x_0 + C.x;
@@ -181,51 +152,10 @@ drawMandelbrod3 (__global struct Vertex* verts,
     float x_0 = scale_factor * ix + shift_x;
     float y_0 = scale_factor * iy + shift_y;
 
-    calcMandelbrod3 (x_0, y_0, C, count_iters, &count_iters);
+    calcMandelbrod3 (x_0, y_0, C, count_iters, 1, &count_iters);
 
-    struct Vertex vertex = {
-        .pos = {
-            .x = ix,
-            .y = iy
-        },
-
-        .color = {
-            .r = 25.5 * count_iters * 0.1,
-            .g = 25.5 * count_iters * 0.4,
-            .b = 25.5 * count_iters * 0.9,
-            .a = 255
-        }
-    };
-
-    verts[ix * get_global_size (1) + iy] = vertex;
+    fillVertex (&verts[ix * get_global_size (1) + iy], ix, iy, count_iters);
 } // drawMandelbrod3
-
-inline void
-calcJulia3 (float x_0,
-            float y_0,
-            struct Vector2f C,
-            int count_iters,
-            int* res)
-{
-    float x = x_0, y = y_0;
-    float tmp_x = 0, tmp_y = 0;
-
-    while (count_iters--) {
-        tmp_x = x*x*x - 3 * x * y*y + C.x;
-        tmp_y = 3 * x*x * y - y*y*y + C.y;
-
-        x = tmp_x;
-        y = tmp_y;
-
-        if ((x * x + y * y) > 4) {
-            *res = count_iters;
-            return;
-        }
-    }
-
-    *res = 0;
-    return;
-} // calcJulia3
 
 __kernel void
 drawJulia3 (__global struct Vertex* verts,
@@ -241,23 +171,7 @@ drawJulia3 (__global struct Vertex* verts,
     float x_0 = scale_factor * ix + shift_x;
     float y_0 = scale_factor * iy + shift_y;
 
-    calcJulia3 (x_0, y_0, C, count_iters, &count_iters);
+    calcMandelbrod3 (x_0, y_0, C, count_iters, 0, &count_iters);
 
-    // count_iters *= 255;
-
-    struct Vertex vertex = {
-        .pos = {
-            .x = ix,
-            .y = iy
-        },
-
-        .color = {
-            .r = 25.5 * count_iters * 0.1,
-            .g = 25.5 * count_iters * 0.4,
-            .b = 25.5 * count_iters * 0.9,
-            .a = 255
-        }
-    };
-
-    verts[ix * get_global_size (1) + iy] = vertex;
+    fillVertex (&verts[ix * get_global_size (1) + iy], ix, iy, count_iters);
 } // drawJulia3
