@@ -175,3 +175,75 @@ drawJulia3 (__global struct Vertex* verts,
 
     fillVertex (&verts[ix * get_global_size (1) + iy], ix, iy, count_iters);
 } // drawJulia3
+
+inline void
+calcMandelbrod4 (float x_0,
+                 float y_0,
+                 struct Vector2f C,
+                 int count_iters,
+                 int is_mand,
+                 int* res)
+{
+    float x = x_0, y = y_0;
+    float tmp_x = 0, tmp_y = 0;
+
+    x_0 *= is_mand;
+    y_0 *= is_mand;
+
+    while (count_iters--) {
+        float x2 = x * x, y2 = y * y;
+
+        tmp_x = x2 - y2;
+        tmp_x = tmp_x * tmp_x - 4 * x2 * y2 + x_0 + C.x;
+        tmp_y = 4 * x * y * (x2 - y2) + y_0 + C.y;
+
+        x = tmp_x;
+        y = tmp_y;
+
+        if ((x * x + y * y) > 4) {
+            *res = count_iters;
+            return;
+        }
+    }
+
+    *res = 0;
+    return;
+} // calcMandelbrod4
+
+__kernel void
+drawMandelbrod4 (__global struct Vertex* verts,
+                 float scale_factor,
+                 float shift_x,
+                 float shift_y,
+                 struct Vector2f C,
+                 int count_iters)
+{
+    const uint ix = get_global_id (0);
+    const uint iy = get_global_id (1);
+
+    float x_0 = scale_factor * ix + shift_x;
+    float y_0 = scale_factor * iy + shift_y;
+
+    calcMandelbrod4 (x_0, y_0, C, count_iters, 1, &count_iters);
+
+    fillVertex (&verts[ix * get_global_size (1) + iy], ix, iy, count_iters);
+} // drawMandelbrod4
+
+__kernel void
+drawJulia4 (__global struct Vertex* verts,
+            float scale_factor,
+            float shift_x,
+            float shift_y,
+            struct Vector2f C,
+            int count_iters)
+{
+    const uint ix = get_global_id (0);
+    const uint iy = get_global_id (1);
+
+    float x_0 = scale_factor * ix + shift_x;
+    float y_0 = scale_factor * iy + shift_y;
+
+    calcMandelbrod4 (x_0, y_0, C, count_iters, 0, &count_iters);
+
+    fillVertex (&verts[ix * get_global_size (1) + iy], ix, iy, count_iters);
+} // drawJulia4

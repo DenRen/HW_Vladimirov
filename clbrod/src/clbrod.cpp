@@ -1,4 +1,5 @@
 #include "clbrod.hpp"
+#include <cmath>
 
 namespace clbrod {
 
@@ -18,9 +19,11 @@ FractalDrawer::FractalDrawer (const cl::Device& device,
     size_ (size)
 {
     kernels.emplace_back ("Mandelbrod2", program_,"drawMandelbrod2");
-    kernels.emplace_back ("Mandelbrod3", program_, "drawMandelbrod3");
     kernels.emplace_back ("Julia2", program_, "drawJulia2");
+    kernels.emplace_back ("Mandelbrod3", program_, "drawMandelbrod3");
     kernels.emplace_back ("Julia3", program_, "drawJulia3");
+    kernels.emplace_back ("Mandelbrod4", program_, "drawMandelbrod4");
+    kernels.emplace_back ("Julia4", program_, "drawJulia4");
 }
 
 void FractalDrawer::draw (sf::RenderTarget& target,
@@ -59,6 +62,10 @@ void FractalDrawer::setFractalNumber (unsigned fractalNumber) {
     processFractalNumber ();
 }
 
+const std::string& FractalDrawer::getFractalName () const {
+    return kernels[fractalNumber_].getName ();
+}
+
 static bool
 processEvent (sf::Window& window,
               sf::Vector3f& pos,
@@ -67,7 +74,8 @@ processEvent (sf::Window& window,
 {
     bool change = false;
     sf::Event event;
-    while (window.pollEvent (event)) {
+    window.waitEvent (event);
+    do {
         switch (event.type) {
             case sf::Event::Closed:
                 window.close ();
@@ -99,6 +107,7 @@ processEvent (sf::Window& window,
 
                     case sf::Keyboard::Space:
                         pos.z *= 1.2;
+                        change = true;
                         break;
                     case sf::Keyboard::LShift:
                     case sf::Keyboard::X:
@@ -132,7 +141,7 @@ processEvent (sf::Window& window,
                         fractalDrawer.previousFractal ();
                         change = true;
                         break;
-                    
+
                     case sf::Keyboard::R:
                         C.x = 0;
                         C.y = 0;
@@ -146,60 +155,82 @@ processEvent (sf::Window& window,
             default:
                 break;
         }
-    }
+    } while (window.pollEvent (event));
 
     return change;
-} // bool processEvent (sf::Window& window, sf::Vector3f& pos, 
+} // bool processEvent (sf::Window& window, sf::Vector3f& pos,
   //                    sf::Vector2f& C, int& fractalNumber)
 
-int drawFractal (QUALITY quality) {
+int drawFractal (QUALITY quality, int windowStyle) {
+    const auto windowSizeX = (int) quality * 16 / 9;
+    const auto windowSizeY = (int) quality;
+    sf::RenderWindow window (sf::VideoMode (windowSizeX, windowSizeY),"", windowStyle);
+
     hidra::DeviceProvider deviceProvider;
     auto device = deviceProvider.getDefaultDevice ();
-
-    sf::RenderWindow window (sf::VideoMode ((int) quality * 16 / 9, (int) quality),"", sf::Style::Default);
-
     clbrod::FractalDrawer fractalDrawer (device, window.getSize ());
 
     sf::RenderTexture target;
-    if (!target.create (window.getSize ().x, window.getSize ().y)) {
+    if (!target.create (windowSizeX, windowSizeY)) {
         std::cout << "Error to create target" << std::endl;
         return 0;
     }
-    std::vector <sf::Vertex> verts (target.getSize ().x * target.getSize ().y);
+    std::vector <sf::Vertex> verts (windowSizeX * windowSizeY);
 
     sf::Vector3f pos (0, 0, 1);
     sf::Vector2f C (0, 0);
-    int fractalNumber = 0;
 
     sf::Clock timer;
     timer.restart ();
 
     sf::Color colorLine (255, 255, 255, 100);
-    sf::Vertex grid_x[] = {
-        sf::Vertex (sf::Vector2f (window.getSize ().x / 2, 0), colorLine),
-        sf::Vertex (sf::Vector2f (window.getSize ().x / 2, window.getSize ().y), colorLine)
+    sf::Vertex grid_vert[] = {
+        sf::Vertex (sf::Vector2f (windowSizeX / 2, 0), colorLine),
+        sf::Vertex (sf::Vector2f (windowSizeX / 2, windowSizeY), colorLine)
     };
 
-    sf::Vertex grid_y[] = {
-        sf::Vertex (sf::Vector2f (0, window.getSize ().y / 2), colorLine),
-        sf::Vertex (sf::Vector2f (window.getSize ().x, window.getSize ().y / 2), colorLine)
+    sf::Vertex grid_horiz[] = {
+        sf::Vertex (sf::Vector2f (0, windowSizeY / 2), colorLine),
+        sf::Vertex (sf::Vector2f (windowSizeX, windowSizeY / 2), colorLine)
     };
+
+    sf::Font font;
+    if (!font.loadFromFile ("fonts/Arcane Nine.otf")) {
+        throw std::runtime_error ("Font incorrect!");
+    }
+
+    sf::Text fractalName;
+    fractalName.setFillColor (sf::Color::White);
+    fractalName.setFont (font);
+    fractalName.setCharacterSize (50);
+    fractalName.setPosition (sf::Vector2f (0.02 * windowSizeX, 0.9 * windowSizeY));
+
+    std::string fpsString;
+    auto fpsText = fractalName;
+    fpsText.setPosition (sf::Vector2f (0.9 * windowSizeX, 0.9 * windowSizeY));
 
     do {
         timer.restart ();
 
         fractalDrawer.draw (target, pos, C);
 
+        fractalName.setString (fractalDrawer.getFractalName ());
+
         window.clear ();
         window.draw (sf::Sprite (target.getTexture ()));
-        window.draw (grid_x, 2, sf::PrimitiveType::Lines);
-        window.draw (grid_y, 2, sf::PrimitiveType::Lines);
-        window.display ();
+        window.draw (grid_vert, 2, sf::PrimitiveType::Lines);
+        window.draw (grid_horiz, 2, sf::PrimitiveType::Lines);
+        window.draw (fractalName);
 
         float fps = 1000.0 / timer.getElapsedTime ().asMilliseconds ();
-        window.setTitle ("FPS: " + std::to_string (fps));
+        fpsString = "FPS: " + std::to_string ((int) fps);
+        window.setTitle (fpsString);
+        fpsText.setString (fpsString);
 
-        if (processEvent (window, pos, C, fractalDrawer) == false)
+        window.draw (fpsText);
+        window.display ();
+
+        while (processEvent (window, pos, C, fractalDrawer) == false)
             continue;
     } while (window.isOpen ());
 }

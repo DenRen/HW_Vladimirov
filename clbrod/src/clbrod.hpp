@@ -73,6 +73,8 @@ public:
                const sf::Vector2f& C,
                int count_iters = 1000);
 
+    const std::string& getFractalName () const;
+
     void nextFractal ();
     void previousFractal ();
     void setFractalNumber (unsigned fractalNumber);
@@ -83,6 +85,6 @@ enum class QUALITY : unsigned {
     FHD = 1080
 };
 
-int drawFractal (QUALITY quality);
+int drawFractal (QUALITY quality, int windowStyle = sf::Style::Fullscreen);
 
 } // namespace clbrod

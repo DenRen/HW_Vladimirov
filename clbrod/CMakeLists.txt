@@ -17,3 +17,4 @@ add_executable (main ${SOURCES})
 
 
 file (COPY src/kernels DESTINATION .)
+file (COPY src/fonts DESTINATION .)
