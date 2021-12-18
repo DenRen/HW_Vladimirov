@@ -45,17 +45,19 @@ class Sorter {
 
     uint32_t max_group_size_;
 
+    using profiling_time_t = decltype (cl::Event ().getProfilingInfo <CL_PROFILING_COMMAND_START> ());
+
 public:
     Sorter (cl::Device device);
 
     template <typename T>
-    decltype (cl::Event ().getProfilingInfo <CL_PROFILING_COMMAND_START> ())
+    profiling_time_t
     sort (std::vector <T>& vec, uint dir = 1) {
         return sort (vec.data (), vec.size (), dir);
     }
 
     template <typename T>
-    decltype (cl::Event ().getProfilingInfo <CL_PROFILING_COMMAND_START> ())
+    profiling_time_t
     sort (T* data, size_t size, uint dir = 1);
 
 }; // class Sorter

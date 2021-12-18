@@ -129,7 +129,7 @@ auto get_delta_time (cl::Event event) {
 }
 
 template <>
-decltype (cl::Event ().getProfilingInfo <CL_PROFILING_COMMAND_START> ())
+Sorter::profiling_time_t
 Sorter::sort <int> (int* input_data,       // Data to be sorted
                     std::size_t data_size, // The size of the data in the number of int
                     uint dir)              // Direction sort (1 -> /, 0 -> \)
@@ -155,7 +155,7 @@ Sorter::sort <int> (int* input_data,       // Data to be sorted
     cmd_queue_.enqueueWriteBuffer (buffer, CL_FALSE, 0, sizeof (data_type) * data_size,
                                    input_data, nullptr, nullptr);
 
-    decltype (cl::Event ().getProfilingInfo <CL_PROFILING_COMMAND_START> ()) timeKernel = 0;
+    profiling_time_t timeKernel = 0;
 
     if (data_size <= l_buf_size) {
         uint threadCount = data_size / 2;

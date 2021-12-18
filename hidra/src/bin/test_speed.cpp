@@ -9,7 +9,7 @@
 int
 main (int argc, char* argv[]) {
     try {
-        hidra::testSpeed (18, 18);
+        hidra::testSpeed (1, 21);
     } catch (cl::Error& exc) {
         std::cerr 
             << "Exception!" << std::endl
