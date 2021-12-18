@@ -145,6 +145,7 @@ processEvent (sf::Window& window,
                     case sf::Keyboard::R:
                         C.x = 0;
                         C.y = 0;
+                        change = true;
                         break;
 
                     default:

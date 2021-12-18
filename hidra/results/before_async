@@ -1,0 +1,105 @@
+Size array:         16 ints         C/G: 0.00%
+	time GPU:           923 mks
+	time Kernel:          6 mks K/G: 0.65%
+	time CPU:             0 mks
+
+Size array:         32 ints         C/G: 0.00%
+	time GPU:           890 mks
+	time Kernel:          7 mks K/G: 0.79%
+	time CPU:             0 mks
+
+Size array:         64 ints         C/G: 0.11%
+	time GPU:           890 mks
+	time Kernel:          9 mks K/G: 1.01%
+	time CPU:             1 mks
+
+Size array:        128 ints         C/G: 0.34%
+	time GPU:           893 mks
+	time Kernel:         10 mks K/G: 1.12%
+	time CPU:             3 mks
+
+Size array:        256 ints         C/G: 0.78%
+	time GPU:           901 mks
+	time Kernel:         12 mks K/G: 1.33%
+	time CPU:             7 mks
+
+Size array:        512 ints         C/G: 1.66%
+	time GPU:           905 mks
+	time Kernel:         16 mks K/G: 1.77%
+	time CPU:            15 mks
+
+Size array:       1024 ints         C/G: 4.31%
+	time GPU:           905 mks
+	time Kernel:         19 mks K/G: 2.10%
+	time CPU:            39 mks
+
+Size array:       2048 ints         C/G: 8.23%
+	time GPU:           924 mks
+	time Kernel:         30 mks K/G: 3.25%
+	time CPU:            76 mks
+
+Size array:       4096 ints         C/G: 17.36%
+	time GPU:           956 mks
+	time Kernel:         55 mks K/G: 5.75%
+	time CPU:           166 mks
+
+Size array:       8192 ints         C/G: 34.98%
+	time GPU:          1035 mks
+	time Kernel:        114 mks K/G: 11.01%
+	time CPU:           362 mks
+
+Size array:      16384 ints         C/G: 71.69%
+	time GPU:          1081 mks
+	time Kernel:        132 mks K/G: 12.21%
+	time CPU:           775 mks
+
+Size array:      32768 ints         C/G: 142.10%
+	time GPU:          1171 mks
+	time Kernel:        157 mks K/G: 13.41%
+	time CPU:          1664 mks
+
+Size array:      65536 ints         C/G: 245.32%
+	time GPU:          1452 mks
+	time Kernel:        313 mks K/G: 21.56%
+	time CPU:          3562 mks
+
+Size array:     131072 ints         C/G: 369.67%
+	time GPU:          2028 mks
+	time Kernel:        680 mks K/G: 33.53%
+	time CPU:          7497 mks
+
+Size array:     262144 ints         C/G: 498.29%
+	time GPU:          3215 mks
+	time Kernel:       1467 mks K/G: 45.63%
+	time CPU:         16020 mks
+
+Size array:     524288 ints         C/G: 604.47%
+	time GPU:          5589 mks
+	time Kernel:       3122 mks K/G: 55.86%
+	time CPU:         33784 mks
+
+Size array:    1048576 ints         C/G: 603.54%
+	time GPU:         11753 mks
+	time Kernel:       6936 mks K/G: 59.01%
+	time CPU:         70934 mks
+
+Size array:    2097152 ints         C/G: 624.18%
+	time GPU:         23944 mks
+	time Kernel:      15117 mks K/G: 63.13%
+	time CPU:        149453 mks
+
+Size array:    4194304 ints         C/G: 655.71%
+	time GPU:         48019 mks
+	time Kernel:      31559 mks K/G: 65.72%
+	time CPU:        314864 mks
+
+Size array:    8388608 ints         C/G: 630.80%
+	time GPU:        103336 mks
+	time Kernel:      70827 mks K/G: 68.54%
+	time CPU:        651839 mks
+
+Size array:   16777216 ints         C/G: 594.98%
+	time GPU:        228150 mks
+	time Kernel:     162726 mks K/G: 71.32%
+	time CPU:       1357442 mks
+

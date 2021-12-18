@@ -9,6 +9,7 @@
 #include <cmath>
 #include <random>
 #include <chrono>
+#include <bit>
 
 namespace hidra {
 
@@ -65,16 +66,11 @@ DeviceProvider::getDefaultDeviceName () const {
     return defualt_device_.getInfo <CL_DEVICE_NAME> ();
 } // DeviceProvider::getDefaultPlatformName () const
 
-static int
-round_down_pow2 (int n) // Number to be rounded
+static unsigned
+round_down_pow2 (unsigned num) // Number to be rounded
 {
-    int i = 0;
-    for (; n != 0; ++i) {
-        n >>= 1;
-    }
-
-    return 1 << (i - 1);
-} // round_down_pow2 (int n)
+    return 1 << (8 * sizeof (num) - std::countl_zero (num) - 1);
+} // round_down_pow2 (int num)
 
 static cl::Program
 buildProgram (cl::Context context,           // The context in which the program will be built
@@ -119,11 +115,11 @@ Sorter::Sorter (cl::Device device) : // The device on which the sorter will work
 
     using data_type = cl_int4;
     const std::size_t max_possible_group_size = local_size / (2 * sizeof (data_type));
-    if (max_group_size_ > max_possible_group_size) {
-        max_group_size_ = round_down_pow2 (max_possible_group_size);
-    }
 
-    max_group_size_ = round_down_pow2 (max_group_size_);
+    max_group_size_ = round_down_pow2 (max_group_size_ > max_possible_group_size ?
+                                       max_possible_group_size :
+                                       max_group_size_);
+    
 } // Sorter::Sorter (cl::Device device)
 
 auto get_delta_time (cl::Event event) {
@@ -156,7 +152,8 @@ Sorter::sort <int> (int* input_data,       // Data to be sorted
     cl::LocalSpaceArg local_buf { .size_ = sizeof (data_type) * l_buf_size };
 
     cl::Buffer buffer (context_, CL_MEM_READ_WRITE, data_size * sizeof (data_type));
-    cl::copy (cmd_queue_, data, data + data_size, buffer);
+    cmd_queue_.enqueueWriteBuffer (buffer, CL_FALSE, 0, sizeof (data_type) * data_size,
+                                   input_data, nullptr, nullptr);
 
     decltype (cl::Event ().getProfilingInfo <CL_PROFILING_COMMAND_START> ()) timeKernel = 0;
 
@@ -167,9 +164,10 @@ Sorter::sort <int> (int* input_data,       // Data to be sorted
         cl::NDRange local (threadCount);
         cl::EnqueueArgs args {cmd_queue_, global, local};
 
-        timeKernel += get_delta_time (
-        bitonic_sort_local_ (args, local_buf, buffer, data_size, dir));
+        cl::Event event = bitonic_sort_local_ (args, local_buf, buffer, data_size, dir);
         cl::copy (cmd_queue_, buffer, data, data + data_size);
+        
+        timeKernel += get_delta_time (event);
     } else {
         uint threadCount = l_buf_size / 2;
         uint blockCount = data_size / l_buf_size;
@@ -178,19 +176,25 @@ Sorter::sort <int> (int* input_data,       // Data to be sorted
         cl::NDRange local (threadCount);
         cl::EnqueueArgs args {cmd_queue_, global, local};
 
-        timeKernel += get_delta_time (bitonic_sort_full_local_ (args, local_buf, buffer));
+        std::vector <cl::Event> event_list;
+
+        event_list.push_back (bitonic_sort_full_local_ (args, local_buf, buffer));
         for (uint size = 2 * l_buf_size; size <= data_size; size <<= 1)
         for (unsigned stride = size / 2; stride > 0; stride >>= 1)
             if (stride >= l_buf_size) {
-                timeKernel += get_delta_time (
+                event_list.push_back (
                 bitonic_merge_global_ (args, buffer, data_size, size, stride, dir));
             } else {
-                timeKernel += get_delta_time (
+                event_list.push_back (
                 bitonic_merge_local_ (args, local_buf, buffer, data_size, size, dir));
                 break;
             }
 
         cl::copy (cmd_queue_, buffer, data, data + data_size);
+
+        for (const auto& event : event_list) {
+            timeKernel += get_delta_time (event);
+        }
     }
 
     return timeKernel;
