@@ -10,3 +10,9 @@
 [submodule "hidra/googletest"]
 	path = hidra/googletest
 	url = https://github.com/google/googletest
+[submodule "clbrod/SFML"]
+	path = clbrod/SFML
+	url = https://github.com/SFML/SFML
+[submodule "SFML"]
+	path = SFML
+	url = https://github.com/SFML/SFML

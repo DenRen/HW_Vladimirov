@@ -18,11 +18,11 @@ FractalDrawer::FractalDrawer (const cl::Device& device,
     verts_ (size.x * size.y),
     size_ (size)
 {
-    kernels.emplace_back ("Mandelbrod2", program_,"drawMandelbrod2");
-    kernels.emplace_back ("Julia2", program_, "drawJulia2");
+    kernels.emplace_back ("Mandelbrod2", program_, "drawMandelbrod2");
     kernels.emplace_back ("Mandelbrod3", program_, "drawMandelbrod3");
-    kernels.emplace_back ("Julia3", program_, "drawJulia3");
     kernels.emplace_back ("Mandelbrod4", program_, "drawMandelbrod4");
+    kernels.emplace_back ("Julia2", program_, "drawJulia2");
+    kernels.emplace_back ("Julia3", program_, "drawJulia3");
     kernels.emplace_back ("Julia4", program_, "drawJulia4");
 }
 
@@ -74,7 +74,9 @@ processEvent (sf::Window& window,
 {
     bool change = false;
     sf::Event event;
-    window.waitEvent (event);
+    if (window.waitEvent (event) == false) {
+        return false;
+    }
     do {
         switch (event.type) {
             case sf::Event::Closed:
@@ -234,6 +236,8 @@ int drawFractal (QUALITY quality, int windowStyle) {
         while (processEvent (window, pos, C, fractalDrawer) == false)
             continue;
     } while (window.isOpen ());
+
+    return 0;
 }
 
 } // namespace clbrod

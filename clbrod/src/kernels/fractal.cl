@@ -40,11 +40,11 @@ void fillVertex (__global struct Vertex* vertex,
 
 inline void
 calcMandelbrod2 (float x_0,
-                float y_0,
-                struct Vector2f C,
-                int count_iters,
-                int is_mand,
-                int* res)
+                 float y_0,
+                 struct Vector2f C,
+                 int count_iters,
+                 int is_mand,
+                 int* res)
 {
     float x = x_0, y = y_0;
     float tmp_x = 0, tmp_y = 0;
@@ -71,11 +71,11 @@ calcMandelbrod2 (float x_0,
 
 __kernel void
 drawMandelbrod2 (__global struct Vertex* verts,
-                float scale_factor,
-                float shift_x,
-                float shift_y,
-                struct Vector2f C,
-                int count_iters)
+                 float scale_factor,
+                 float shift_x,
+                 float shift_y,
+                 struct Vector2f C,
+                 int count_iters)
 {
     const uint ix = get_global_id (0);
     const uint iy = get_global_id (1);
@@ -90,11 +90,11 @@ drawMandelbrod2 (__global struct Vertex* verts,
 
 __kernel void
 drawJulia2 (__global struct Vertex* verts,
-           float scale_factor,
-           float shift_x,
-           float shift_y,
-           struct Vector2f C,
-           int count_iters)
+            float scale_factor,
+            float shift_x,
+            float shift_y,
+            struct Vector2f C,
+            int count_iters)
 {
     const uint ix = get_global_id (0);
     const uint iy = get_global_id (1);
