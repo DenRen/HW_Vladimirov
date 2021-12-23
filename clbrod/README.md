@@ -26,11 +26,11 @@ CLBROD
     # Build project
     mkdir build
     cd build
-    cmake ..
-    cmake --build . --config Release -j
+    cmake -DCMAKE_BUILD_TYPE=Release ..
+    cmake --build .
 
     # Start clbrod
-    cd Release
+    cd Debug
     ./clbrod.exe
     ```
 

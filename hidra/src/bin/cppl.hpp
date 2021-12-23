@@ -43,7 +43,7 @@ class Sorter {
     cl::KernelFunctor <cl::LocalSpaceArg, cl::Buffer, cl_uint, cl_uint, cl_uint>
         bitonic_merge_local_;
 
-    uint32_t max_group_size_;
+    unsigned max_group_size_;
 
     using profiling_time_t = decltype (cl::Event ().getProfilingInfo <CL_PROFILING_COMMAND_START> ());
 
@@ -52,13 +52,13 @@ public:
 
     template <typename T>
     profiling_time_t
-    sort (std::vector <T>& vec, uint dir = 1) {
+    sort (std::vector <T>& vec, unsigned dir = 1) {
         return sort (vec.data (), vec.size (), dir);
     }
 
     template <typename T>
     profiling_time_t
-    sort (T* data, size_t size, uint dir = 1);
+    sort (T* data, size_t size, unsigned dir = 1);
 
 }; // class Sorter
 

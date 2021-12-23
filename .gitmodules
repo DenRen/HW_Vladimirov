@@ -16,3 +16,6 @@
 [submodule "clbrod/OpenCL-CLHPP"]
 	path = clbrod/OpenCL-CLHPP
 	url = https://github.com/KhronosGroup/OpenCL-CLHPP
+[submodule "hidra/OpenCL-CLHPP"]
+	path = hidra/OpenCL-CLHPP
+	url = https://github.com/KhronosGroup/OpenCL-CLHPP

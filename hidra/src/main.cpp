@@ -3,8 +3,8 @@
 #include <vector>
 #include <random>
 
-#include "cppl.hpp"
-#include "other_func.hpp"
+#include "bin/cppl.hpp"
+#include "bin/other_func.hpp"
 
 void sort_cin ();
 

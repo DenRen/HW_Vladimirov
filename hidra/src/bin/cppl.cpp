@@ -132,7 +132,7 @@ template <>
 Sorter::profiling_time_t
 Sorter::sort <int> (int* input_data,       // Data to be sorted
                     std::size_t data_size, // The size of the data in the number of int
-                    uint dir)              // Direction sort (1 -> /, 0 -> \)
+                    unsigned dir)              // Direction sort (1 -> /, 0 -> \)
 {
     using data_type = cl_int4;
 
@@ -147,7 +147,7 @@ Sorter::sort <int> (int* input_data,       // Data to be sorted
     data_size /= sizeof (data_type) / sizeof (input_data[0]);
     data_type* data = reinterpret_cast <data_type*> (input_data);
 
-    uint l_buf_size = 2 * max_group_size_;
+    unsigned l_buf_size = 2 * max_group_size_;
 
     cl::LocalSpaceArg local_buf { .size_ = sizeof (data_type) * l_buf_size };
 
@@ -158,7 +158,7 @@ Sorter::sort <int> (int* input_data,       // Data to be sorted
     profiling_time_t timeKernel = 0;
 
     if (data_size <= l_buf_size) {
-        uint threadCount = data_size / 2;
+        unsigned threadCount = data_size / 2;
 
         cl::NDRange global (threadCount);
         cl::NDRange local (threadCount);
@@ -169,8 +169,8 @@ Sorter::sort <int> (int* input_data,       // Data to be sorted
         
         timeKernel += get_delta_time (event);
     } else {
-        uint threadCount = l_buf_size / 2;
-        uint blockCount = data_size / l_buf_size;
+        unsigned threadCount = l_buf_size / 2;
+        unsigned blockCount = data_size / l_buf_size;
 
         cl::NDRange global (blockCount * threadCount);
         cl::NDRange local (threadCount);
@@ -179,7 +179,7 @@ Sorter::sort <int> (int* input_data,       // Data to be sorted
         std::vector <cl::Event> event_list;
 
         event_list.push_back (bitonic_sort_full_local_ (args, local_buf, buffer));
-        for (uint size = 2 * l_buf_size; size <= data_size; size <<= 1)
+        for (unsigned size = 2 * l_buf_size; size <= data_size; size <<= 1)
         for (unsigned stride = size / 2; stride > 0; stride >>= 1)
             if (stride >= l_buf_size) {
                 event_list.push_back (
@@ -198,7 +198,7 @@ Sorter::sort <int> (int* input_data,       // Data to be sorted
     }
 
     return timeKernel;
-} // Sorter::sort <int> (int* input_data, std::size_t data_size, uint dir)
+} // Sorter::sort <int> (int* input_data, std::size_t data_size, unsigned dir)
 
 void
 testSpeed (unsigned pow2_begin, unsigned pow2_end) {
