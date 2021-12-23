@@ -14,6 +14,7 @@ set_target_properties (clbrod
         CXX_STANDARD_REQUIRED ON
 )
 
+# Compiler flags
 if (MSVC)
     set (CMAKE_CXX_FLAGS "/Wall")
     set (CMAKE_CXX_FLAGS "/EHsc") # For SFML compiling

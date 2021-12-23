@@ -19,6 +19,10 @@ CLBROD
 
 2. ### Build and start app
     ```sh
+    # Download submodules
+    git submodule init .
+    git submoduel update
+
     # Build project
     mkdir build
     cd build
