@@ -136,7 +136,7 @@ template <>
 decltype (cl::Event ().getProfilingInfo <CL_PROFILING_COMMAND_START> ())
 Sorter::sort <int> (int* input_data,       // Data to be sorted
                     std::size_t data_size, // The size of the data in the number of int
-                    uint dir)              // Direction sort (1 -> /, 0 -> \)
+                    unsigned dir)          // Direction sort (1 -> /, 0 -> \)
 {
     using data_type = cl_int4;
 
@@ -151,9 +151,10 @@ Sorter::sort <int> (int* input_data,       // Data to be sorted
     data_size /= sizeof (data_type) / sizeof (input_data[0]);
     data_type* data = reinterpret_cast <data_type*> (input_data);
 
-    uint l_buf_size = 2 * max_group_size_;
+    unsigned l_buf_size = 2 * max_group_size_;
 
-    cl::LocalSpaceArg local_buf { .size_ = sizeof (data_type) * l_buf_size };
+    cl::LocalSpaceArg local_buf {};
+    local_buf.size_ = sizeof (data_type) * l_buf_size;
 
     cl::Buffer buffer (context_, CL_MEM_READ_WRITE, data_size * sizeof (data_type));
     cl::copy (cmd_queue_, data, data + data_size, buffer);
@@ -161,7 +162,7 @@ Sorter::sort <int> (int* input_data,       // Data to be sorted
     decltype (cl::Event ().getProfilingInfo <CL_PROFILING_COMMAND_START> ()) timeKernel = 0;
 
     if (data_size <= l_buf_size) {
-        uint threadCount = data_size / 2;
+        unsigned threadCount = data_size / 2;
 
         cl::NDRange global (threadCount);
         cl::NDRange local (threadCount);
@@ -171,15 +172,15 @@ Sorter::sort <int> (int* input_data,       // Data to be sorted
         bitonic_sort_local_ (args, local_buf, buffer, data_size, dir));
         cl::copy (cmd_queue_, buffer, data, data + data_size);
     } else {
-        uint threadCount = l_buf_size / 2;
-        uint blockCount = data_size / l_buf_size;
+        unsigned threadCount = l_buf_size / 2;
+        unsigned blockCount = data_size / l_buf_size;
 
         cl::NDRange global (blockCount * threadCount);
         cl::NDRange local (threadCount);
         cl::EnqueueArgs args {cmd_queue_, global, local};
 
         timeKernel += get_delta_time (bitonic_sort_full_local_ (args, local_buf, buffer));
-        for (uint size = 2 * l_buf_size; size <= data_size; size <<= 1)
+        for (unsigned size = 2 * l_buf_size; size <= data_size; size <<= 1)
         for (unsigned stride = size / 2; stride > 0; stride >>= 1)
             if (stride >= l_buf_size) {
                 timeKernel += get_delta_time (
@@ -194,7 +195,7 @@ Sorter::sort <int> (int* input_data,       // Data to be sorted
     }
 
     return timeKernel;
-} // Sorter::sort <int> (int* input_data, std::size_t data_size, uint dir)
+} // Sorter::sort <int> (int* input_data, std::size_t data_size, unsigned dir)
 
 void
 testSpeed (unsigned pow2_begin, unsigned pow2_end) {
