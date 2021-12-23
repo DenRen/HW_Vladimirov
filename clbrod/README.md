@@ -21,7 +21,7 @@ CLBROD
     ```sh
     # Download submodules
     git submodule init .
-    git submoduel update
+    git submodule update
 
     # Build project
     mkdir build
@@ -40,16 +40,19 @@ CLBROD
 
 
 # Prepare Linux
-### Install the required dependencies (in **bash**):
-```sh
-# Prepare system
-sudo apt update
-sudo apt upgrade -y
+* ### Install the required dependencies (in **bash**):
+  ```sh
+  # Prepare system
+  sudo apt update
+  sudo apt upgrade -y
 
-# Install all the necessary software for assembling SFML
-sudo apt install -y \
-    make cmake g++ build-essential git \
-    libglu1-mesa-dev freeglut3-dev libxcursor-dev \
-    libfreetype6-dev \
-    libudev-dev libopenal-dev libvorbis-dev libflac-dev libxrandr-dev
-```
+  # Install OpenCL dependencies
+
+  # Install all the necessary software for assembling SFML
+  sudo apt install -y \
+      make cmake g++ build-essential git \
+      libglu1-mesa-dev freeglut3-dev libxcursor-dev \
+      libfreetype6-dev \
+      libudev-dev libopenal-dev libvorbis-dev libflac-dev libxrandr-dev
+  ```
+* Install OpenCL driver
