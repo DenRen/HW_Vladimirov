@@ -13,9 +13,6 @@
 [submodule "clbrod/SFML"]
 	path = clbrod/SFML
 	url = https://github.com/SFML/SFML
-[submodule "SFML"]
-	path = SFML
-	url = https://github.com/SFML/SFML
 [submodule "clbrod/OpenCL-CLHPP"]
 	path = clbrod/OpenCL-CLHPP
 	url = https://github.com/KhronosGroup/OpenCL-CLHPP
