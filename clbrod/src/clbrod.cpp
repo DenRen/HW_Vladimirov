@@ -90,48 +90,48 @@ processEvent (sf::Window& window,
                         return true;
 
                     case sf::Keyboard::Right:
-                        pos.x += 0.1 * pos.z;
+                        pos.x += 0.1f * pos.z;
                         change = true;
                         break;
                     case sf::Keyboard::Left:
-                        pos.x -= 0.1 * pos.z;
+                        pos.x -= 0.1f * pos.z;
                         change = true;
                         break;
 
                     case sf::Keyboard::Up:
-                        pos.y += 0.1 * pos.z;
+                        pos.y += 0.1f * pos.z;
                         change = true;
                         break;
                     case sf::Keyboard::Down:
-                        pos.y -= 0.1 * pos.z;
+                        pos.y -= 0.1f * pos.z;
                         change = true;
                         break;
 
                     case sf::Keyboard::Space:
-                        pos.z *= 1.2;
+                        pos.z *= 1.2f;
                         change = true;
                         break;
                     case sf::Keyboard::LShift:
                     case sf::Keyboard::X:
-                        pos.z /= 1.2;
+                        pos.z /= 1.2f;
                         change = true;
                         break;
 
                     case sf::Keyboard::D:
-                        C.x += 0.02 * pos.z;
+                        C.x += 0.02f * pos.z;
                         change = true;
                         break;
                     case sf::Keyboard::A:
-                        C.x -= 0.02 * pos.z;
+                        C.x -= 0.02f * pos.z;
                         change = true;
                         break;
 
                     case sf::Keyboard::W:
-                        C.y += 0.02 * pos.z;
+                        C.y += 0.02f * pos.z;
                         change = true;
                         break;
                     case sf::Keyboard::S:
-                        C.y -= 0.02 * pos.z;
+                        C.y -= 0.02f * pos.z;
                         change = true;
                         break;
 
@@ -145,8 +145,8 @@ processEvent (sf::Window& window,
                         break;
 
                     case sf::Keyboard::R:
-                        C.x = 0;
-                        C.y = 0;
+                        C.x = 0.0f;
+                        C.y = 0.0f;
                         change = true;
                         break;
 

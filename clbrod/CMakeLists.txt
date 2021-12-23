@@ -12,8 +12,19 @@ set_target_properties (clbrod
     PROPERTIES
         CXX_STANDARD 17
         CXX_STANDARD_REQUIRED ON
-        CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3"
 )
+
+if (MSVC)
+    set (CMAKE_CXX_FLAGS "/Wall")
+    set (CMAKE_CXX_FLAGS "/EHsc") # For SFML compiling
+    set (CMAKE_CXX_FLAGS_RELEASE_INIT "/O2y")
+    set (CMAKE_CXX_FLAGS_DEBUG_INIT "/Odi")
+else ()
+    set (CMAKE_CXX_FLAGS "-Wall -Wextra -Wpedantic -Werror")
+    set (CMAKE_CXX_FLAGS "-Wno-unused-parameter -Wno-missing-field-initializers") # For OpenCL include
+    set (CMAKE_CXX_FLAGS_RELEASE_INIT "-O3")
+    set (CMAKE_CXX_FLAGS_DEBUG_INIT "-O0 -g")
+endif ()
 
 # OpenCL
 find_package (OpenCL REQUIRED)
@@ -33,6 +44,7 @@ target_link_libraries (clbrod
     sfml-window
     sfml-system
 )
-add_custom_command(TARGET clbrod POST_BUILD
-                   COMMAND ${CMAKE_COMMAND} -E copy_directory
-                       ${CMAKE_SOURCE_DIR}/src/config $<TARGET_FILE_DIR:clbrod>)
+
+add_custom_command (TARGET clbrod POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    ${CMAKE_SOURCE_DIR}/src/config $<TARGET_FILE_DIR:clbrod>)
