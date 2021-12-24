@@ -2,7 +2,6 @@ cmake_minimum_required (VERSION 3.0.0)
 project (main VERSION 0.1.0)
 
 set (CMAKE_CXX_STANDARD 20)
-set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Main project
 file (GLOB SOURCES "src/bin/*.cpp")
@@ -70,7 +69,11 @@ include_directories (${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 set (TEST_DIR "src/test")
 
 # Add test cpp file
-add_executable (run_tests ${SOURCES} ${TEST_DIR}/test_kernel_func.cpp)
+add_executable (run_tests ${SOURCES}
+                          ${TEST_DIR}/test_kernel_func.cpp ${TEST_DIR}/test_sorter.cpp)
+
+target_include_directories (run_tests PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries (run_tests ${OpenCL_LIBRARY})
 
 add_custom_command (TARGET run_tests POST_BUILD
                     COMMAND ${CMAKE_COMMAND} -E copy_directory

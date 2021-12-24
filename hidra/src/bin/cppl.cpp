@@ -10,6 +10,8 @@
 #include <random>
 #include <chrono>
 #include <bit>
+#include <map>
+#include <tuple>
 
 namespace hidra {
 
@@ -23,29 +25,56 @@ DeviceProvider::DeviceProvider (cl_device_type device_type, // Device type (CPU,
     if (platforms.size () == 0) {
         throw cl::Error (0, "Platforms not found");
     }
+    
+    std::vector <std::string> vendorNames;
+    std::vector <std::tuple <cl::Platform, cl::Device>> vendorDevice;
+    vendorNames.reserve (platforms.size ());
 
     for (const auto& platform : platforms) {
         auto platform_version = platform.getInfo <CL_PLATFORM_VERSION> ();
-        auto platform_name = platform.getInfo <CL_PLATFORM_NAME> ();
+        if (platform_version.find (version) != decltype (platform_version)::npos) {  
+            auto platformName = platform.getInfo <CL_PLATFORM_NAME> ();
 
-        if (platform_version.find (version) != decltype (platform_version)::npos &&
-            platform_name.find ("NVIDIA") != decltype (platform_name)::npos) {
             std::vector <cl::Device> devices;
-
             platform.getDevices (device_type, &devices);
-            if (devices.size () != 0) {
-                default_platform_ = platform;
-                defualt_device_ = devices[0];
+            if (devices.size () == 0) {
+                continue;
             }
+
+            vendorNames.emplace_back (std::move (platformName));
+            vendorDevice.push_back ({platform, devices[0]});
         }
     }
 
-    if (defualt_device_ () == nullptr) {
-        std::string err_msg ("Device with version");
-        err_msg += version;
-        err_msg += "not found in platform!";
+    const std::vector <std::string> vendorPriority {"NVIDIA", "AMD", "Intel"};
+    bool platformFounded = false;
 
-        throw cl::Error (0, err_msg.c_str ());
+    for (const auto& vendor : vendorPriority) {
+        std::size_t index = -1;
+        for (const auto& vendorName : vendorNames) {
+            ++index;
+            if (vendorName.find (vendor) != std::string::npos) {
+                default_platform_ = std::get <cl::Platform> (vendorDevice[index]);
+                defualt_device_ = std::get <cl::Device> (vendorDevice[index]);
+
+                platformFounded = true;
+                break;
+            }
+        }
+        
+        if (platformFounded) {
+            break;
+        }
+    }
+
+    if (!platformFounded) {
+        std::stringstream err_msg ("Device with ");
+        err_msg << version;
+        err_msg << " from ";
+        err_msg << vendorPriority;
+        err_msg << " not found in platform!";
+
+        throw std::invalid_argument (err_msg.str ());
     }
 } // DeviceProvider::DeviceProvider (cl_device_type device_type, std::string_view version)
 

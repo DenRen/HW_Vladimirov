@@ -56,7 +56,7 @@ operator << (std::basic_ostream <CharT, Traits>& stream, // The stream where the
     const std::size_t size = vec.size ();
     if (size != 0) {
         for (std::size_t i = 0; i + 1 < size; ++i) {
-            stream << vec[i] << " ";
+            stream << vec[i] << ", ";
         }
         stream << vec[size - 1];
     }

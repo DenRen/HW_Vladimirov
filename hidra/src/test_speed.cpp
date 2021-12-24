@@ -14,5 +14,7 @@ main (int argc, char* argv[]) {
         std::cerr 
             << "Exception!" << std::endl
             << exc.what () << ", error code: " << exc.err () << std::endl;
+    } catch (std::exception& exc) {
+        std::cerr << "Error: " << exc.what () << std::endl;
     }
 }
