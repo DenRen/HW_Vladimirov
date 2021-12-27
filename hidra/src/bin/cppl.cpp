@@ -74,7 +74,7 @@ DeviceProvider::DeviceProvider (cl_device_type device_type, // Device type (CPU,
         err_msg << vendorPriority;
         err_msg << " not found in platform!";
 
-        throw std::invalid_argument (err_msg.str ());
+        throw std::runtime_error (err_msg.str ());
     }
 } // DeviceProvider::DeviceProvider (cl_device_type device_type, std::string_view version)
 

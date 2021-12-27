@@ -4,7 +4,7 @@ project (clbrod
     LANGUAGES CXX
 )
 
-# Main project
+# Main project ../hidra/src/bin/cppl.cpp
 file (GLOB SOURCES "src/*.cpp")
 add_executable (clbrod ${SOURCES})
 

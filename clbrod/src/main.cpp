@@ -6,5 +6,7 @@ int main () {
     } catch (cl::Error& exc) {
         hidra::printError (exc);
         throw;
+    } catch (std::exception& exc) {
+        std::cerr << "Error: " << exc.what () << std::endl;
     }
 }
