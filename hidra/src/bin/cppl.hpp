@@ -57,15 +57,13 @@ class Sorter {
 public:
     Sorter (cl::Device device);
 
-    template <typename T>
     profiling_time_t
-    sort (std::vector <T>& vec, unsigned dir = 1) {
+    sort (std::vector <int>& vec, unsigned dir = 1) {
         return sort (vec.data (), vec.size (), dir);
     }
 
-    template <typename T>
     profiling_time_t
-    sort (T* data, size_t size, unsigned dir = 1);
+    sort (int* data, size_t size, unsigned dir = 1);
 
 }; // class Sorter
 

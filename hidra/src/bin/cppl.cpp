@@ -174,11 +174,10 @@ auto get_delta_time (cl::Event event) {
            event.getProfilingInfo <CL_PROFILING_COMMAND_START> ();
 }
 
-template <>
 Sorter::profiling_time_t
-Sorter::sort <int> (int* input_data,       // Data to be sorted
-                    std::size_t data_size, // The size of the data in the number of int
-                    unsigned dir)              // Direction sort (1 -> /, 0 -> \)
+Sorter::sort (int* input_data,      // Data to be sorted
+             std::size_t data_size, // The size of the data in the number of int
+             unsigned dir)          // Direction sort (1 -> /, 0 -> \)
 {
     using data_type = cl_int4;
 
