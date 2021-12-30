@@ -12,11 +12,10 @@ class DeviceProvider {
     std::string opencl_version_;
 
     cl::Platform default_platform_;
-    cl::Device defualt_device_;
+    cl::Device default_device_;
 
 public:
-    DeviceProvider (cl_device_type device_type = CL_DEVICE_TYPE_GPU,
-                    std::string_view version = "OpenCL 3.");
+    DeviceProvider (cl_device_type device_type = CL_DEVICE_TYPE_GPU);
 
     cl::Platform getDefaultPlatform () const;
     cl::Device getDefaultDevice () const;
@@ -25,6 +24,14 @@ public:
     std::string getDefaultDeviceName () const;
 
     static std::string dumpAll ();
+
+private:
+    void initDefaultDeviceAndPlatform (const std::vector <std::string>& vendorPriority,
+                                       cl_device_type device_type); // Device type (CPU, GPU, ...)
+    bool setDefaultDeviceAndPlatformByVendorPriority (
+        const std::vector <std::tuple <std::string, cl::Platform, cl::Device>>& vendorDevices,
+        const std::vector <std::string>& vendorPriority
+    );
 }; // class DeviceProvider
 
 class Sorter {

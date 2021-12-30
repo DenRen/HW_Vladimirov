@@ -15,67 +15,84 @@
 
 namespace hidra {
 
-DeviceProvider::DeviceProvider (cl_device_type device_type, // Device type (CPU, GPU, ...)
-                                std::string_view version) : // Version of OpenCL (Ex.: OpenCL 3.0)
-    defualt_device_ (nullptr)
-{
+std::vector <std::tuple <std::string, cl::Platform, cl::Device>>
+getDeviceFromAllPlatforms (cl_device_type device_type) {
     std::vector <cl::Platform> platforms;
     cl::Platform::get (&platforms);
 
     if (platforms.size () == 0) {
         throw cl::Error (0, "Platforms not found");
     }
-    
-    std::vector <std::string> vendorNames;
-    std::vector <std::tuple <cl::Platform, cl::Device>> vendorDevice;
-    vendorNames.reserve (platforms.size ());
+
+    std::vector <std::tuple <std::string, cl::Platform, cl::Device>> vendorDevices;
+    vendorDevices.reserve (platforms.size ());
 
     for (const auto& platform : platforms) {
-        auto platform_version = platform.getInfo <CL_PLATFORM_VERSION> ();
-        if (platform_version.find (version) != decltype (platform_version)::npos) {  
-            auto platformName = platform.getInfo <CL_PLATFORM_NAME> ();
 
-            std::vector <cl::Device> devices;
-            platform.getDevices (device_type, &devices);
-            if (devices.size () == 0) {
-                continue;
-            }
-
-            vendorNames.emplace_back (std::move (platformName));
-            vendorDevice.push_back ({platform, devices[0]});
+        std::vector <cl::Device> devices;
+        platform.getDevices (device_type, &devices);
+        if (devices.size () == 0) {
+            continue;
         }
+
+        auto platformName = platform.getInfo <CL_PLATFORM_NAME> ();
+        vendorDevices.emplace_back (std::move (platformName), platform, devices[0]);
     }
 
-    const std::vector <std::string> vendorPriority {"NVIDIA", "AMD", "Intel"};
-    bool platformFounded = false;
+    return vendorDevices;
+} // getDeviceFromAllPlatforms (cl_device_type device_type)
 
+bool
+DeviceProvider::setDefaultDeviceAndPlatformByVendorPriority (
+    const std::vector <std::tuple <std::string, cl::Platform, cl::Device>>& vendorDevices,
+    const std::vector <std::string>& vendorPriority
+) {
     for (const auto& vendor : vendorPriority) {
-        std::size_t index = -1;
-        for (const auto& vendorName : vendorNames) {
-            ++index;
-            if (vendorName.find (vendor) != std::string::npos) {
-                default_platform_ = std::get <cl::Platform> (vendorDevice[index]);
-                defualt_device_ = std::get <cl::Device> (vendorDevice[index]);
+        for (const auto&[platformName, platform, device] : vendorDevices) {
+            if (platformName.find (vendor) != std::string::npos) {
+                default_platform_ = platform;
+                default_device_ = device;
 
-                platformFounded = true;
-                break;
+                return true;
             }
         }
-        
-        if (platformFounded) {
-            break;
+    }
+
+    return false;
+} // DeviceProvider::setDefaultDeviceAndPlatformByVendorPriority (
+  //   const std::vector <std::tuple <std::string, cl::Platform, cl::Device>>& vendorDevices,
+  //   const std::vector <std::string>& vendorPriority
+  // )
+
+void
+DeviceProvider::initDefaultDeviceAndPlatform (const std::vector <std::string>& vendorPriority,
+                                              cl_device_type device_type) {
+    auto vendorDevices = getDeviceFromAllPlatforms (device_type);
+    if (setDefaultDeviceAndPlatformByVendorPriority (vendorDevices, vendorPriority)) {
+        return;
+    }
+
+    // Prepare error message
+    std::stringstream err_msg;
+    err_msg << "Failed to find the required devices according to the vendor priority list: "
+            << vendorPriority << ". Found one device per platform: ";
+
+    // Extract platform name
+    IteratorExtractor iter_extractor_begin (vendorDevices.cbegin (),
+        [] (const auto& tuple) {
+            return std::get <std::string> (tuple); // Get platform name
         }
-    }
+    );
+    print_sep (err_msg, iter_extractor_begin, vendorDevices.cend ()) << ".";
 
-    if (!platformFounded) {
-        std::stringstream err_msg ("Device with ");
-        err_msg << version;
-        err_msg << " from ";
-        err_msg << vendorPriority;
-        err_msg << " not found in platform!";
+    throw std::runtime_error (err_msg.str ());
+} // DeviceProvider::initDefaultDeviceAndPlatform (const std::vector <std::string>& vendorPriority,
+  //                                               cl_device_type device_type
 
-        throw std::runtime_error (err_msg.str ());
-    }
+DeviceProvider::DeviceProvider (cl_device_type device_type) : // Device type (CPU, GPU, ...)
+    default_device_ (nullptr)
+{
+    initDefaultDeviceAndPlatform ({"NVIDIA", "AMD", "Intel"}, CL_DEVICE_TYPE_GPU);
 } // DeviceProvider::DeviceProvider (cl_device_type device_type, std::string_view version)
 
 cl::Platform
@@ -83,7 +100,7 @@ DeviceProvider::getDefaultPlatform () const {
     return default_platform_;
 } // DeviceProvider::getDefaultPlatform () const
 cl::Device DeviceProvider::getDefaultDevice () const {
-    return defualt_device_;
+    return default_device_;
 } // DeviceProvider::getDefaultDevice () const
 
 std::string
@@ -92,7 +109,7 @@ DeviceProvider::getDefaultPlatformName () const {
 } // DeviceProvider::getDefaultPlatformName () const
 std::string
 DeviceProvider::getDefaultDeviceName () const {
-    return defualt_device_.getInfo <CL_DEVICE_NAME> ();
+    return default_device_.getInfo <CL_DEVICE_NAME> ();
 } // DeviceProvider::getDefaultPlatformName () const
 
 static unsigned
@@ -148,12 +165,12 @@ Sorter::Sorter (cl::Device device) : // The device on which the sorter will work
     max_group_size_ = round_down_pow2 (max_group_size_ > max_possible_group_size ?
                                        max_possible_group_size :
                                        max_group_size_);
-    
+
 } // Sorter::Sorter (cl::Device device)
 
 auto get_delta_time (cl::Event event) {
     event.wait ();
-    return event.getProfilingInfo <CL_PROFILING_COMMAND_END> () - 
+    return event.getProfilingInfo <CL_PROFILING_COMMAND_END> () -
            event.getProfilingInfo <CL_PROFILING_COMMAND_START> ();
 }
 
@@ -195,7 +212,7 @@ Sorter::sort <int> (int* input_data,       // Data to be sorted
 
         cl::Event event = bitonic_sort_local_ (args, local_buf, buffer, data_size, dir);
         cl::copy (cmd_queue_, buffer, data, data + data_size);
-        
+
         timeKernel += get_delta_time (event);
     } else {
         unsigned threadCount = l_buf_size / 2;

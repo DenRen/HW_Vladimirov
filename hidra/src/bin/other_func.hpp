@@ -4,6 +4,8 @@
 #include <iostream>
 #include <fstream>
 
+#include "print_lib.hpp"
+
 static std::string
 readSource (std::string fileName) {
     using stream = std::istreambuf_iterator <std::string::traits_type::char_type>;
@@ -47,22 +49,6 @@ bool operator == (const std::vector <T>& lhs,
 
     return true;
 } // bool operator == (const std::vector <T>& lhs, const std::vector <T>& rhs)
-
-template <typename T, typename Traits, typename CharT>
-std::basic_ostream <CharT, Traits>&
-operator << (std::basic_ostream <CharT, Traits>& stream, // The stream where the vector data will be written
-             const std::vector <T>& vec)                 // Vector
-{
-    const std::size_t size = vec.size ();
-    if (size != 0) {
-        for (std::size_t i = 0; i + 1 < size; ++i) {
-            stream << vec[i] << ", ";
-        }
-        stream << vec[size - 1];
-    }
-
-    return stream;
-} // operator << (std::basic_ostream <CharT, Traits>& stream, const std::vector <T>& vec)
 
 template <typename CharT, typename Traits>
 std::basic_ostream <CharT, Traits>&
