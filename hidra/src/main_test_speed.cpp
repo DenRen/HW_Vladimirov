@@ -3,13 +3,13 @@
 #include <vector>
 #include <random>
 
-#include "bin/cppl.hpp"
+#include "test/test_speed.hpp"
 #include "bin/other_func.hpp"
 
 int
 main (int argc, char* argv[]) {
     try {
-        hidra::testSpeed (1, 21);
+        test_speed::testSpeed (1, 21);
     } catch (cl::Error& exc) {
         std::cerr 
             << "Exception!" << std::endl

@@ -46,8 +46,9 @@ add_custom_command (TARGET main POST_BUILD
 #######################
 # Test speed
 #######################
+set (TEST_DIR "src/test")
 
-add_executable (test_speed ${SOURCES} ${SRC_DIR}/test_speed.cpp)
+add_executable (test_speed ${SOURCES} ${TEST_DIR}/test_speed.cpp ${SRC_DIR}/main_test_speed.cpp)
 
 target_include_directories (test_speed PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries (test_speed ${OpenCL_LIBRARY})
@@ -66,8 +67,6 @@ include_directories (${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 #######################
 # Unit Tests
 #######################
-set (TEST_DIR "src/test")
-
 # Add test cpp file
 add_executable (run_tests ${SOURCES}
                           ${TEST_DIR}/test_kernel_func.cpp ${TEST_DIR}/test_sorter.cpp)
