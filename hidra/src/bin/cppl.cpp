@@ -42,6 +42,55 @@ getDeviceFromAllPlatforms (cl_device_type device_type) {
     return vendorDevices;
 } // getDeviceFromAllPlatforms (cl_device_type device_type)
 
+// Extractor iterator
+template <typename IteratorT, typename ExtractorT>
+class IteratorExtractor {
+    IteratorT current_;
+    ExtractorT extractor_;
+
+public:
+    IteratorExtractor (IteratorT begin, ExtractorT extractor) :
+        current_ (begin),
+        extractor_ (extractor)
+    {}
+
+    IteratorExtractor&
+    operator ++ () {
+        ++current_;
+        return *this;
+    }
+
+    IteratorExtractor
+    operator ++ (int) {
+        return IteratorExtractor (current_++, extractor_);
+    }
+
+    auto
+    operator * () const {
+        return extractor_ (*current_);
+    }
+
+    bool
+    operator != (const IteratorExtractor& rhs) const {
+        return current_ != rhs.current_;
+    }
+
+    bool
+    operator == (const IteratorExtractor& rhs) const {
+        return !(*this != rhs);
+    }
+
+    bool
+    operator != (const IteratorT& rhs) const {
+        return current_ != rhs;
+    }
+
+    bool
+    operator == (const IteratorT& rhs) const {
+        return !(*this != rhs);
+    }
+};
+
 bool
 DeviceProvider::setDefaultDeviceAndPlatformByVendorPriority (
     const std::vector <std::tuple <std::string, cl::Platform, cl::Device>>& vendorDevices,

@@ -2,12 +2,12 @@
 #include <iomanip>
 
 #include "test_speed.hpp"
-#include "../bin/other_func.hpp"
+#include "../../bin/other_func.hpp"
 
 namespace test_speed {
 
 void
-testSpeed (unsigned pow2_begin, unsigned pow2_end) {
+testSpeedSorter (unsigned pow2_begin, unsigned pow2_end) {
     hidra::DeviceProvider device_provider;
     cl::Device device = device_provider.getDefaultDevice ();
     hidra::Sorter sorter (device);
@@ -68,6 +68,6 @@ testSpeed (unsigned pow2_begin, unsigned pow2_end) {
                   << " K/G: " << 100.0 * gpu_kernel_time / gpu_time.count () << "%" << std::endl
                   << tab << "time CPU:    " <<  std::setw (10) << cpu_time.count () << " mks" << std::endl << std::endl;
     }
-} // testSpeed (unsigned pow2_begin, unsigned pow2_end)
+} // testSpeedSorter (unsigned pow2_begin, unsigned pow2_end)
 
 } // namespace test_speed

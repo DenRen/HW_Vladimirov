@@ -6,8 +6,8 @@
 #include <algorithm>
 #include <random>
 
-#include "../bin/cppl.hpp"
-#include "../bin/other_func.hpp"
+#include "../../bin/cppl.hpp"
+#include "../../bin/other_func.hpp"
 
 using std::cout;
 using std::endl;

@@ -34,7 +34,7 @@ LINK_LIBRARIES (${OpenCL_LIBRARY})
 # Main
 #######################
 set (SRC_DIR "src")
-add_executable (main ${SOURCES} ${SRC_DIR}/main.cpp)
+add_executable (main ${SOURCES} ${SRC_DIR}/sort.cpp)
 
 target_include_directories (main PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries (main ${OpenCL_LIBRARY})
@@ -44,11 +44,11 @@ add_custom_command (TARGET main POST_BUILD
                     ${CMAKE_SOURCE_DIR}/src/bin/config $<TARGET_FILE_DIR:main>)
 
 #######################
-# Test speed
+# Test speed sorter
 #######################
-set (TEST_DIR "src/test")
+set (TEST_DIR "src/test/sorter")
 
-add_executable (test_speed ${SOURCES} ${TEST_DIR}/test_speed.cpp ${SRC_DIR}/main_test_speed.cpp)
+add_executable (test_speed ${SOURCES} ${TEST_DIR}/test_speed.cpp ${SRC_DIR}/sorter_test_speed.cpp)
 
 target_include_directories (test_speed PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries (test_speed ${OpenCL_LIBRARY})

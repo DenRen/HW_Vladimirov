@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
-#include "../bin/cppl.hpp"
-#include "../bin/other_func.hpp"
+#include "../../bin/cppl.hpp"
+#include "../../bin/other_func.hpp"
 
 #include <vector>
 #include <algorithm>

@@ -3,13 +3,13 @@
 #include <vector>
 #include <random>
 
-#include "test/test_speed.hpp"
+#include "test/sorter/test_speed.hpp"
 #include "bin/other_func.hpp"
 
 int
 main (int argc, char* argv[]) {
     try {
-        test_speed::testSpeed (1, 21);
+        test_speed::testSpeedSorter (1, 21);
     } catch (cl::Error& exc) {
         std::cerr 
             << "Exception!" << std::endl
