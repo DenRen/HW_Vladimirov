@@ -13,9 +13,7 @@ main (int argc, char* argv[]) {
     try {
         sort_cin ();
     } catch (cl::Error& exc) {
-        std::cerr 
-            << "Error!" << std::endl
-            << exc.what () << ", error code: " << exc.err () << std::endl;
+        hidra::printError (exc);
     } catch (std::exception& exc) {
         std::cerr << "Error: " << exc.what () << std::endl;
     }
@@ -31,6 +29,9 @@ std::istream&
 operator >> (std::istream& is, std::vector <T>& vec) {
     std::size_t size = 0;
     std::cin >> size;
+    if (std::cin.fail ()) {
+        throw std::invalid_argument ("Failed to input size.");
+    }
     
     if (!check_on_pow_2 (size)) {
         throw std::invalid_argument ("N is not a power 2");

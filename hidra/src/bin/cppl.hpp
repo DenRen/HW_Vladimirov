@@ -5,6 +5,7 @@
 
 #include <CL/opencl.hpp>
 #include <iostream>
+#include <vector>
 
 namespace hidra {
 
@@ -66,5 +67,40 @@ public:
     sort (int* data, size_t size, unsigned dir = 1);
 
 }; // class Sorter
+
+class ClAccelerator {
+protected:
+    cl::Device device_;
+    cl::Context context_;
+    cl::CommandQueue cmd_queue_;
+    cl::Program program_;
+
+public:
+    ClAccelerator (const cl::Device& device,
+                   const std::string& source,
+                   cl::QueueProperties cmd_queue_prop = cl::QueueProperties::None);
+}; // class ClAccelerator
+
+class Finder : public ClAccelerator {
+    using ClAccelerator::device_;
+    using ClAccelerator::context_;
+    using ClAccelerator::cmd_queue_;
+    using ClAccelerator::program_;
+
+public:
+    Finder (const cl::Device& device);
+
+    std::vector <int>
+    numberRepeats (const std::string& haystack,
+                   const std::vector <std::string>& needles);
+}; // class Finder
+
+cl::Program
+buildProgram (cl::Context context,           // The context in which the program will be built
+              std::string name_kernel_func); // Name kernel function
+
+const char *getErrorString (cl_int error);
+void printError (cl::Error& error);
+
 
 } // namespace hidra

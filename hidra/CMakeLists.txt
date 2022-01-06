@@ -31,31 +31,33 @@ INCLUDE_DIRECTORIES (${CMAKE_CURRENT_SOURCE_DIR})
 LINK_LIBRARIES (${OpenCL_LIBRARY})
 
 #######################
-# Main
+# Sort
 #######################
 set (SRC_DIR "src")
-add_executable (main ${SOURCES} ${SRC_DIR}/sort.cpp)
+add_executable (sort ${SOURCES} ${SRC_DIR}/sort.cpp)
 
-target_include_directories (main PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries (main ${OpenCL_LIBRARY})
+target_include_directories (sort PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries (sort ${OpenCL_LIBRARY})
 
-add_custom_command (TARGET main POST_BUILD
+add_custom_command (TARGET sort POST_BUILD
                     COMMAND ${CMAKE_COMMAND} -E copy_directory
-                    ${CMAKE_SOURCE_DIR}/src/bin/config $<TARGET_FILE_DIR:main>)
+                    ${CMAKE_SOURCE_DIR}/src/bin/config $<TARGET_FILE_DIR:sort>)
 
 #######################
 # Test speed sorter
 #######################
-set (TEST_DIR "src/test/sorter")
+set (SORTER_TEST_DIR "src/test/sorter")
 
-add_executable (test_speed ${SOURCES} ${TEST_DIR}/test_speed.cpp ${SRC_DIR}/sorter_test_speed.cpp)
+add_executable (sorter_test_speed ${SOURCES}
+                                  ${SORTER_TEST_DIR}/test_speed.cpp
+                                  ${SRC_DIR}/sorter_test_speed.cpp)
 
-target_include_directories (test_speed PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries (test_speed ${OpenCL_LIBRARY})
+target_include_directories (sorter_test_speed PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries (sorter_test_speed ${OpenCL_LIBRARY})
 
-add_custom_command (TARGET test_speed POST_BUILD
+add_custom_command (TARGET sorter_test_speed POST_BUILD
                     COMMAND ${CMAKE_COMMAND} -E copy_directory
-                    ${CMAKE_SOURCE_DIR}/src/bin/config $<TARGET_FILE_DIR:test_speed>)
+                    ${CMAKE_SOURCE_DIR}/src/bin/config $<TARGET_FILE_DIR:sorter_test_speed>)
 
 #######################
 # GTest
@@ -68,16 +70,32 @@ include_directories (${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 # Unit Tests
 #######################
 # Add test cpp file
-add_executable (run_tests ${SOURCES}
-                          ${TEST_DIR}/test_kernel_func.cpp ${TEST_DIR}/test_sorter.cpp)
+add_executable (sorter_run_tests ${SOURCES}
+                                 ${SORTER_TEST_DIR}/test_kernel_func.cpp
+                                 ${SORTER_TEST_DIR}/test_sorter.cpp)
 
-target_include_directories (run_tests PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries (run_tests ${OpenCL_LIBRARY})
+target_include_directories (sorter_run_tests PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries (sorter_run_tests ${OpenCL_LIBRARY})
 
-add_custom_command (TARGET run_tests POST_BUILD
+add_custom_command (TARGET sorter_run_tests POST_BUILD
                     COMMAND ${CMAKE_COMMAND} -E copy_directory
-                    ${CMAKE_SOURCE_DIR}/src/bin/config $<TARGET_FILE_DIR:run_tests>)
+                    ${CMAKE_SOURCE_DIR}/src/bin/config $<TARGET_FILE_DIR:sorter_run_tests>)
 
 #Link test executable against gtest and gtest_main
-target_link_libraries (run_tests gtest gtest_main ${OpenCL_LIBRARY})
+target_link_libraries (sorter_run_tests gtest gtest_main ${OpenCL_LIBRARY})
 
+#######################
+# Find
+#######################
+set (SRC_DIR "src")
+set (FINDER_TEST_DIR "src/test/finder")
+add_executable (find ${SOURCES}
+                     ${SRC_DIR}/find.cpp
+                     ${SRC_DIR}/find_impl.cpp)
+
+target_include_directories (find PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries (find ${OpenCL_LIBRARY})
+
+add_custom_command (TARGET find POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    ${CMAKE_SOURCE_DIR}/src/bin/config $<TARGET_FILE_DIR:find>)
