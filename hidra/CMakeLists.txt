@@ -64,10 +64,10 @@ add_custom_command (TARGET sorter_test_speed POST_BUILD
 #######################
 ADD_SUBDIRECTORY (googletest)
 enable_testing ()
-include_directories (${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
+include_directories ("googletest/googletest/include" ${gtest_SOURCE_DIR})
 
 #######################
-# Unit Tests
+# Unit Tests sorter
 #######################
 # Add test cpp file
 add_executable (sorter_run_tests ${SOURCES}
@@ -99,3 +99,21 @@ target_link_libraries (find ${OpenCL_LIBRARY})
 add_custom_command (TARGET find POST_BUILD
                     COMMAND ${CMAKE_COMMAND} -E copy_directory
                     ${CMAKE_SOURCE_DIR}/src/bin/config $<TARGET_FILE_DIR:find>)
+
+
+#######################
+# Unit Tests finder
+#######################
+# Add test cpp file
+add_executable (finder_run_tests ${SOURCES}
+                                 ${FINDER_TEST_DIR}/test_finder.cpp)
+
+target_include_directories (finder_run_tests PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries (finder_run_tests ${OpenCL_LIBRARY})
+
+add_custom_command (TARGET finder_run_tests POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    ${CMAKE_SOURCE_DIR}/src/bin/config $<TARGET_FILE_DIR:finder_run_tests>)
+
+#Link test executable against gtest and gtest_main
+target_link_libraries (finder_run_tests gtest gtest_main ${OpenCL_LIBRARY})

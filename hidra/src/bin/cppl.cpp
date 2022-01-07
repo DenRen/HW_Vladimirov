@@ -1,6 +1,3 @@
-#include "cppl.hpp"
-#include "other_func.hpp"
-
 #include <fstream>
 #include <string>
 #include <iostream>
@@ -12,6 +9,10 @@
 #include <bit>
 #include <map>
 #include <tuple>
+
+#include "cppl.hpp"
+#include "other_func.hpp"
+#include "finder_algo.hpp"
 
 namespace hidra {
 
@@ -313,7 +314,6 @@ Finder::numberRepeats (const std::string& haystack,
 {
     return {};
 }
-
 
 const char *getErrorString (cl_int error)
 {

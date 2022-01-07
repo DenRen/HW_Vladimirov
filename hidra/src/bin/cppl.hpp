@@ -102,5 +102,4 @@ buildProgram (cl::Context context,           // The context in which the program
 const char *getErrorString (cl_int error);
 void printError (cl::Error& error);
 
-
 } // namespace hidra

@@ -1,5 +1,7 @@
-#include "finder_algo.hpp"
 #include <tuple>
+#include <iostream>
+
+#include "finder_algo.hpp"
 
 template <typename T>
 T
@@ -37,10 +39,10 @@ std::vector <T>
 calc_htab (const std::string& str,
            const T p)
 {
-    std::vector <T> htab (str.size ());
+    std::vector <T> htab (str.size () + 1);
 
     T cur_p = 1;
-    for (auto i = 1; i < str.size (); ++i) {
+    for (auto i = 1; i <= str.size (); ++i) {
         htab[i] = htab[i - 1] + str[i - 1] * cur_p;
         cur_p *= p;
     }
@@ -61,9 +63,10 @@ numberRepeats_KarpRabin (const std::string& haystack,
     for (const auto& needle : needles) {
         unsigned hash_needle = hash <unsigned> (needle, 0, needle.size (), p);
 
-        for (unsigned i = 0; i < haystack.size () - needle.size (); ++i)
+        for (unsigned i = 0; i + needle.size () <= haystack.size (); ++i)
         {
             unsigned hash = htab[i + needle.size ()] - htab[i];
+
             if (hash == hash_needle)
             {
                 bool ok = true;
@@ -82,31 +85,4 @@ numberRepeats_KarpRabin (const std::string& haystack,
     }
 
     return num_repeats;
-}
-
-int
-karp_rabin (const std::string& haystack,
-            const std::string& needle,
-            const std::vector <unsigned>& ptab) {
-    unsigned hs1 = hash (needle, 0, needle.size (), ptab);
-
-    std::vector <unsigned> htab (haystack.size ());
-    for (unsigned i = 1; i < haystack.size(); i++)
-        htab[i] = htab[i - 1] + (haystack[i - 1] - 'a' + 1) * ptab[i - 1];
-
-    for (unsigned i = 0; i < haystack.size () - needle.size (); i++)
-    {
-        unsigned hs2 = htab[i + needle.size ()] - htab[i];
-        if (hs2 == hs1)
-        {
-            bool ok = true;
-            for (unsigned j = 0; j < needle.size (); j++)
-                if (needle[j] != haystack[i + j])
-                    ok = false;
-            if (ok)
-                return i;
-        }
-        hs1 *= 5;
-    }
-    return -1;
 }
