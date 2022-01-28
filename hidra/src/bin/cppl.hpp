@@ -75,6 +75,21 @@ protected:
     cl::CommandQueue cmd_queue_;
     cl::Program program_;
 
+    template <typename T>
+    cl::Buffer
+    sendBuffer (const std::vector <T>& vec,
+                cl_mem_flags flags = CL_MEM_READ_ONLY,
+                cl_bool blocking = CL_FALSE)
+    {
+        const auto size_in_bytes = sizeof (T) * vec.size ();
+        cl::Buffer buf (context_, flags, size_in_bytes);
+        cmd_queue_.enqueueWriteBuffer (buf, blocking, 0,
+                                       size_in_bytes, vec.data (),
+                                       nullptr, nullptr);
+
+        return buf;
+    }
+
 public:
     ClAccelerator (const cl::Device& device,
                    const std::string& source,

@@ -1,10 +1,7 @@
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <random>
-
+#include <bit>
 #include "bin/cppl.hpp"
 #include "bin/other_func.hpp"
+#include "bin/format_string.hpp"
 
 void sort_cin ();
 
@@ -19,11 +16,6 @@ main (int argc, char* argv[]) {
     }
 }
 
-bool
-check_on_pow_2 (std::size_t num) {
-    return (num & (num - 1)) == 0 && num > 0;
-}
-
 template <typename T>
 std::istream&
 operator >> (std::istream& is, std::vector <T>& vec) {
@@ -32,8 +24,9 @@ operator >> (std::istream& is, std::vector <T>& vec) {
     if (std::cin.fail ()) {
         throw std::invalid_argument ("Failed to input size.");
     }
-    
-    if (!check_on_pow_2 (size)) {
+
+    if (bool is_size_power_2 = std::has_single_bit (size);
+        !is_size_power_2) {
         throw std::invalid_argument ("N is not a power 2");
     }
 
@@ -55,19 +48,23 @@ void
 sort_cin () {
     hidra::DeviceProvider device_provider;
     cl::Device device (device_provider.getDefaultDevice ());
-    hidra::Sorter sorter (device);
+    hidra::Sorter sorter {device};
 
     std::vector <int> arr;
     try {
         std::cin >> arr;
     } catch (std::invalid_argument& exc) {
-        const auto example =
-            "\nEnter the N - quantity numbers (N = 2 ^ m) and these numbers.\n"
-            "Example:\n"
-            "4\n"
-            "64 21 32 -78\n"
-            "\nAfter clicking Enter you will receive:\n"
-            "-78 21 32 64\n";
+        #define NL NEWLINE
+        constexpr auto example =
+            NL NL
+            NL "Enter the N - quantity numbers (N = 2 ^ m) and these numbers."
+            NL "Example:"
+            NL "4"
+            NL "64 21 32 -78"
+            NL "After clicking Enter you will receive:"
+            NL "-78 21 32 64"
+            NL;
+        #undef NL
 
         throw std::invalid_argument (std::string (exc.what ()) + example);
     }

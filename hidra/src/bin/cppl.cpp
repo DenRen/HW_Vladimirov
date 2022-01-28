@@ -308,10 +308,74 @@ Finder::Finder (const cl::Device& device) :
     ClAccelerator (device, "config/kernels/finder.cl")
 {}
 
+using hash_t = unsigned;
+
+struct needle_scheme_t {
+    hash_t hash_;
+    unsigned size_;
+    unsigned pos_;
+
+    needle_scheme_t (hash_t hash,
+                     unsigned size,
+                     unsigned pos) :
+        hash_ (hash),
+        size_ (size),
+        pos_ (pos)
+    {}
+};
+
+std::ostream&
+operator << (std::ostream& os,
+             const needle_scheme_t& scheme)
+{
+    return os << "{ hash: " << scheme.hash_
+              << ", size: " << scheme.size_
+              << ", pos: " << scheme.pos_ << " }";
+}
+
+/*
+  Разобъём на задачи:
+    1) Нужно вычислить хэш таблицу всей строки
+    2) Вычисляем хэш для паттерна
+    3) Создаём некоторое кол-во work-item, которые ищут
+       один паттерн в собственной подстроке
+    4) Work-item записывает кол-во точных совпадений в glob mem
+    5) CPU accumulate this numbers
+
+*/
+
 std::vector <int>
 Finder::numberRepeats (const std::string& haystack,
                        const std::vector <std::string>& needles)
 {
+    hash_t p = 257;
+
+    std::vector <needle_scheme_t> needle_schemes;
+    needle_schemes.reserve (needles.size ());
+
+    // Fill needle_schemes
+    std::size_t needles_size = 0;
+    for (const auto& needle : needles) {
+        hash_t needle_hash = hash <hash_t> (needle, 0, needle.size (), p);
+        unsigned cur_pos = needles_size;
+        needle_schemes.emplace_back (needle_hash, needle.size (), cur_pos);
+        needles_size += needle.size ();
+    }
+
+    // Create needles buffer
+    std::vector <char> needle_str (needles_size);
+    auto it_needle_buf = needle_str.begin ();
+    for (const auto& needle : needles) {
+        std::copy (needle.cbegin (), needle.cend (), it_needle_buf);
+        it_needle_buf += needle.size ();
+    }
+
+    // Send needles and strings buffer to GPU
+    cl::Buffer needle_schemes_buf = sendBuffer (needle_schemes);
+    cl::Buffer needle_str_buf = sendBuffer (needle_str);
+
+
+
     return {};
 }
 
